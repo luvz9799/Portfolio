@@ -359,6 +359,39 @@
     a8: L('a8','Anil Gupta','92XXXXXX54','Vinayak Residency','','lost','Hoarding/Ad','Neha',[fu(-8,'Neha','Call','Bought elsewhere',0,'')]),
     a9: L('a9','Deepak Rathore','91XXXXXX88','Dwarika Nagar','','fresh','Telecaller','Rohit',[]),
   }};
+
+  const T0 = Date.now();
+  store.config = { engage: { quotes:['Har follow-up ek naya mauka hai.','Customer ki sunoge to customer tumhari sunega.'], stories:['Ek executive ne 7 din tak har din value bheji. 8ve din customer khud site visit pe aaya.'], birthdays:[{ name:'Neha', date:'2000-'+new Date().toISOString().slice(5,10), type:'bday' }] }, offices: {} };
+  store.wall = {
+    w1: { text:'Aaj Gopal Vihar mein 3 site visits hui, 1 token mila! 🎉', byName:'Neha', by:'neha@demo', ts: T0-2*3600e3, reactions:{ '👏':['amit@demo','rohit@demo'], '🔥':['pooja@demo'] }, comments:[{ name:'Amit', text:'Badhai ho!', ts:T0-3000e3 }] },
+    w2: { text:'Naya brochure team folder mein daal diya hai.', byName:'Amit', by:'amit@demo', ts: T0-26*3600e3, reactions:{ '👍':['neha@demo'] }, comments:[] }
+  };
+
+  (function(){ // sample attendance + standups for this week's score board
+    const dt = new Date(new Date().toISOString().slice(0,10)+'T00:00:00Z'), dow = (dt.getUTCDay()+6)%7, days = [];
+    for (let i = 0; i <= Math.min(dow,5); i++) { const d = new Date(dt); d.setUTCDate(dt.getUTCDate()-dow+i); days.push(d.toISOString().slice(0,10)); }
+    store.attendance = {}; store.standups = {};
+    const ppl = { amit:[1,1,1], neha:[1,1,0], rohit:[1,0,0], pooja:[0,1,1], sanjay:[1,1,1] };
+    days.forEach((day, di) => Object.entries(ppl).forEach(([k, [a, p, r]], pi) => {
+      if ((di + pi) % 4 === 3) return;
+      const name = k[0].toUpperCase() + k.slice(1);
+      if (a) store.attendance[day+'_'+k] = { date: day, name, nameKey: k, inTime: '09:5'+pi, office:'kota', officeName:'Kota', ts: T0 };
+      if (p) store.standups[day+'_'+k] = { date: day, name, nameKey: k, tasks: [{ t:'5 follow-up calls', st: r ? 'done' : '' }, { t:'1 site visit', st: r ? 'done' : '' }], ts: T0 };
+    }));
+  })();
+  window.demoParseLead = function(text){
+    // Stand-in for the Gemini step in the real app: simple pattern matching, clearly labelled.
+    const t = String(text), r = {};
+    const m = t.replace(/\s+/g,'').match(/[6-9]\d{9}/); if (m) r.mobile = m[0];
+    const n = t.match(/^\s*([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/); if (n) r.name = n[1];
+    const b = t.match(/(\d+)\s*-\s*(\d+)\s*lakh/i); if (b) { r.budgetMin = +b[1]*100000; r.budgetMax = +b[2]*100000; }
+    const c = t.match(/\b(Jhalawar|Kota|Baran|Khanpur)\b/i); if (c) { r.city = c[1]; r.locations = c[1]; }
+    if (/plot/i.test(t)) r.ptype = 'Plot';
+    const sz = t.match(/(\d+\s*bigha|\d+x\d+)/i); if (sz) r.size = sz[1];
+    if (/loan/i.test(t)) r.loan = 'yes';
+    r.status = /(urgent|jaldi|hot)/i.test(t) ? 'hot' : 'warm';
+    return new Promise(res => setTimeout(() => res(r), 700));
+  };
   const listeners = {};
   const clone = o => JSON.parse(JSON.stringify(o));
   const coll = n => (store[n] = store[n] || {});
@@ -390,7 +423,7 @@
   const auth = { currentUser: user, onAuthStateChanged: cb => { setTimeout(() => cb(user), 30); return () => {}; }, signOut: () => Promise.resolve(), signInWithEmailAndPassword: () => Promise.resolve(), sendPasswordResetEmail: () => Promise.resolve() };
   const db = { enablePersistence: () => Promise.resolve(), collection: n => query(n, [], null),
     batch: () => { const ops = []; return { set: (r, d, o) => ops.push(() => r.set(d, o)), update: (r, d) => ops.push(() => r.update(d)), delete: r => ops.push(() => r.delete()), commit: () => { ops.forEach(f => f()); return Promise.resolve(); } }; } };
-  const fs = () => db; fs.FieldValue = { serverTimestamp: () => Date.now(), arrayUnion: (...a) => a, delete: () => null };
+  const fs = () => db; fs.FieldValue = { serverTimestamp: () => Date.now(), arrayUnion: (...a) => a, arrayRemove: () => [], increment: n => n, delete: () => null };
   window.firebase = { initializeApp(){}, apps:[1], auth: () => auth, firestore: fs, messaging(){ throw new Error('demo'); } };
   // Outside calls (Cloudinary upload, notify API, AI audit) are switched off in the demo.
   const realFetch = window.fetch.bind(window);
@@ -421,19 +454,27 @@ const IC = {
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
   board:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="10" rx="1"/><rect x="17" y="4" width="5" height="13" rx="1"/></svg>',
   logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg>',
+  team:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  wall:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
 };
 
 // ── config ────────────────────────────────────────────────────────────────
 const STATUSES = [
-  {k:'fresh', l:'Fresh',      c:'#475569', bg:'#eef2f7'},
-  {k:'warm',  l:'Warm',       c:'#b45309', bg:'#fef3c7'},
-  {k:'hot',   l:'Hot',        c:'#dc2626', bg:'#fee2e2'},
-  {k:'visit', l:'Site Visit', c:'#6d28d9', bg:'#ede9fe'},
-  {k:'booked',l:'Booked',     c:'#047857', bg:'#d1fae5'},
-  {k:'lost',  l:'Lost',       c:'#475569', bg:'#e5e7eb'},
+  {k:'fresh',  l:'Suspect',  c:'#475569', bg:'#eef2f7', p:0},
+  {k:'warm',   l:'Prospect', c:'#b45309', bg:'#fef3c7', p:10},
+  {k:'visit',  l:'Visitor',  c:'#6d28d9', bg:'#ede9fe', p:25},
+  {k:'nurture',l:'Nurture',  c:'#0891b2', bg:'#cffafe', p:30},
+  {k:'hot',    l:'Hot',      c:'#dc2626', bg:'#fee2e2', p:60},
+  {k:'booked', l:'Won',      c:'#047857', bg:'#d1fae5', p:100},
+  {k:'lost',   l:'Lost',     c:'#64748b', bg:'#e5e7eb', p:0},
 ];
 const stMap = Object.fromEntries(STATUSES.map(s=>[s.k,s]));
-const OPEN = ['fresh','warm','hot','visit'];
+const OPEN = ['fresh','warm','visit','nurture','hot'];
+const inr = n => '₹'+(n>=1e7?(n/1e7).toFixed(2)+' Cr':(n>=1e5?(n/1e5).toFixed(2)+' L':Math.round(n).toLocaleString('en-IN')));
+const _shade = (hex,amt)=>{ const n=parseInt(String(hex).replace('#',''),16); const a=c=>Math.max(0,Math.min(255,Math.round(c+(amt/100)*255)));
+  return '#'+(((1<<24)+(a((n>>16)&255)<<16)+(a((n>>8)&255)<<8)+a(n&255)).toString(16).slice(1)); };
 const SOURCES = ['Walk-in','Telecaller','Agent','Reference','Hoarding/Ad','Other'];
 // ── Forms (GitHub par live forms ke links yahan paste karo) ──
 const FORMS = [
@@ -522,11 +563,18 @@ function openMore(){
       <span style="font-size:.76rem;font-weight:700;color:var(--ink);text-align:center;line-height:1.2">${label}</span></button>`;
   modal(`<h2>Menu</h2><div class="msub">Baaki options</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      ${!ho?tile('🗂️','Board',"tab('kanban')"):''}
+      ${!ho?tile('⏰','Alerts',"tab('reminders')"):''}
+      ${!ho?tile('📞','Call Log',"location.href='calllog.html'"):''}
+      ${!ho?tile('📄','Forms',"tab('forms')"):''}
       ${tile('📖','Help',"tab('help')")}
       ${tile('🔔','Notif ON',"enableNotifs()")}
       ${na?tile('🔄','Update'+(apkUpdateAvailable()?' •':''),"openUpdate()",apkUpdateAvailable()):''}
       ${!ho?tile('⬆️','Import',"importCSV()"):''}
       ${!ho?tile('⬇️','Export',"exportCSV()"):''}
+      ${(!ho&&isAdmin())?tile('📈','Funnel',"openFunnel()"):''}
+      ${(!ho&&isAdmin())?tile('🏘️','Colony fix',"openColonyMgr()"):''}
+      ${(!ho&&isAdmin())?tile('🗑️','Deleted',"openDeleted()"):''}
     </div>`);
 }
 // ── WhatsApp Message module (Sahi-CRM style): preview + team templates (Firestore) ──
@@ -657,11 +705,17 @@ let messaging = null; try{ messaging = firebase.messaging(); }catch(_){}
 let swReg = null;
 const EXECS = ['Amit','Neha','Rohit','Pooja','Sanjay'];   // executives — dropdown me pehle se dikhenge
 const NOTIFY_URL = 'https://demo.invalid/api/notify';   // instant-notification server (Vercel) — deploy ke baad apni URL daalna
-const AUDIT_URL  = '';   // Smart Call Log ka Apps Script /exec URL (calllog wala same). Khaali = recording auto-audit OFF.
+const AUDIT_URL  = 'https://demo.invalid/exec';   // Smart Call Log ka Apps Script /exec URL (calllog wala same). Khaali = recording auto-audit OFF.
 
 let leads = [], user = null, unsub = null;
 
 function putLead(L){ return col().doc(L.id).set(L).catch(e=>alert('Save failed: '+e.message)); }
+
+// Huddle standup ka mirror Google Sheet me (calllog wale SAME /exec doPost pe type:'huddle').
+// Fire-and-forget — Firestore source of truth hai, sheet sirf tracking ke liye.
+function pushHuddleSheet(rec){ if(!AUDIT_URL) return;
+  try{ fetch(AUDIT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({type:'huddle',record:rec})}).catch(()=>{}); }catch(e){} }
 
 // ── AI call-audit (recording upload hote hi, background me) ──
 function _jsonp(url){return new Promise((res,rej)=>{
@@ -689,6 +743,48 @@ async function auditRec(leadId, recUrl, fuId){
     try{ render(); }catch(e){}
     return true;
   }catch(e){ return false; }
+}
+// ── AI se lead fill (Gemini, server-side key via AUDIT_URL) ──────────────────
+function _aiSet(id,v){ const el=document.getElementById(id); if(el && v!=null && v!=='') el.value=v; }
+async function aiParse(btn){
+  const text=((document.getElementById('ai_text')||{}).value||'').trim();
+  const st=document.getElementById('ai_status');
+  if(!text){ if(st){st.style.color='var(--danger)';st.textContent='Pehle kuch bolo ya likho.';} return; }
+  if(!AUDIT_URL){ if(st){st.style.color='var(--danger)';st.textContent='AI endpoint set nahi (AUDIT_URL).';} return; }
+  btn.disabled=true; const old=btn.textContent; btn.textContent='Soch raha hoon…';
+  if(st){ st.style.color='var(--muted)'; st.textContent='Gemini se nikaal raha hoon…'; }
+  try{
+    const r=await window.demoParseLead(text);
+    if(!r || r.error) throw new Error((r&&r.error)||'khaali jawab');
+    _aiSet('l_name',r.name); _aiSet('l_mobile',r.mobile); _aiSet('l_occ',r.occupation);
+    _aiSet('l_city',r.city); _aiSet('l_colony',r.colony); _aiSet('l_locations',r.locations);
+    _aiSet('l_ptype',r.ptype); _aiSet('l_size',r.size);
+    _aiSet('l_bmin',r.budgetMin); _aiSet('l_bmax',r.budgetMax); _aiSet('l_cash',r.cash);
+    _aiSet('l_loan',r.loan); _aiSet('l_loanamt',r.loanAmt); _aiSet('l_loanstatus',r.loanStatus);
+    _aiSet('l_token',r.token); _aiSet('l_status',r.status); _aiSet('l_cafter',r.contactAfter);
+    _aiSet('l_refby',r.refBy); _aiSet('l_family',r.family);
+    if(r.locations||r.budgetMin||r.cash||r.family||r.ptype||r.contactAfter){ const d=document.querySelector('.modal details'); if(d) d.open=true; }
+    if(st){ st.style.color='var(--ok)'; st.textContent='✅ Demo: AI simulated. Bhar diya — check karke Save karo.'; }
+  }catch(e){ if(st){ st.style.color='var(--danger)'; st.textContent='Nahi ho paya: '+e.message+'. Haath se bhar lo.'; } }
+  btn.disabled=false; btn.textContent=old;
+}
+let _aiRec=null;
+function aiMic(btn){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const ta=document.getElementById('ai_text'), st=document.getElementById('ai_status');
+  if(!SR){ if(st){st.style.color='var(--danger)';st.textContent='Is phone me voice support nahi — type ya paste karo.';} return; }
+  if(_aiRec){ try{_aiRec.stop();}catch(e){} return; }   // dobara dabaya = stop
+  const rec=new SR(); _aiRec=rec; rec.lang='hi-IN'; rec.interimResults=false; rec.continuous=true;
+  btn.textContent='⏹ Ruko (sun raha…)';
+  if(st){ st.style.color='var(--muted)'; st.textContent='Bolo… (dobara 🎤 dabao to ruk jayega)'; }
+  rec.onresult=e=>{ let t=''; for(let i=e.resultIndex;i<e.results.length;i++) t+=e.results[i][0].transcript; ta.value=(ta.value?ta.value+' ':'')+t; };
+  rec.onerror=e=>{ if(st){ st.style.color='var(--danger)';
+    st.textContent = (e.error==='not-allowed'||e.error==='service-not-allowed')
+      ? 'Mic permission nahi mili — address bar me 🔒 → Microphone → Allow karo, page reload karke phir 🎤 dabao. (Ya type/paste karo.)'
+      : (e.error==='no-speech' ? 'Kuch sunai nahi diya — dobara 🎤 dabao aur bolo.'
+      : 'Mic error: '+(e.error||'')+' — type/paste bhi kar sakte ho.'); } };
+  rec.onend=()=>{ _aiRec=null; btn.textContent='🎤 Bolo'; };
+  try{ rec.start(); }catch(e){ _aiRec=null; btn.textContent='🎤 Bolo'; if(st)st.textContent='Mic start nahi hua.'; }
 }
 // purani recording ko manually audit karne ka button
 async function manualAudit(leadId, fuId, btn){
@@ -728,7 +824,7 @@ async function uploadFile(inputId){                // uploads to Cloudinary, ret
 // (demo seed removed — data now lives in Firestore)
 
 // ── routing / filters ────────────────────────────────────────────────────────
-let route = {view:'today', id:null};
+let route = {view:'home', id:null};
 const go = (view,id=null)=>{ route={view,id}; render(); window.scrollTo(0,0); };
 function tab(v){ route.view=v; route.id=null; render(); window.scrollTo(0,0); }
 let f = {q:'', status:'', colony:'', exec:'', from:'', to:''};
@@ -738,15 +834,19 @@ let page=1, pageSize=25, dragId=null;
 const lastFU = L => L.followUps && L.followUps.length ? L.followUps[0] : null;
 const execsOf = L => (Array.isArray(L.execs)&&L.execs.length) ? L.execs : (L.exec ? [L.exec] : []);
 const execStr = L => execsOf(L).join(', ') || '—';
+const ownerOf = L => execsOf(L)[0] || '—';                 // main executive = owner
+const assignedExtra = L => execsOf(L).slice(1);            // owner ke alawa assigned
 function avatarColor(name){ let h=0; for(const c of name) h=c.charCodeAt(0)+((h<<5)-h);
   return `hsl(${Math.abs(h)%360},50%,42%)`; }
 const uniq = arr => [...new Set(arr.filter(Boolean))].sort();
 function badge(k){ const s=stMap[k]||stMap.fresh;
   return `<span class="badge" style="background:${s.bg};color:${s.c}">${s.l}</span>`; }
-const dueDate = L => { const fu=lastFU(L); return (fu && OPEN.includes(L.status)) ? fu.nextDate : ''; };
+// Due date = follow-up ki next-date; agar wo nahi to customer ki "contact after" date. (Lost/Won pe koi reminder nahi.)
+const dueDate = L => { if(!OPEN.includes(L.status)) return ''; const fu=lastFU(L); return (fu&&fu.nextDate) ? fu.nextDate : (L.contactAfter||''); };
 const isDue = L => { const d=dueDate(L); return d && d<=today(); };
 const isOverdue = L => { const d=dueDate(L); return d && d<today(); };
-const isNew = L => OPEN.includes(L.status) && !(L.followUps && L.followUps.length);   // assigned, abhi tak koi kaam nahi
+// Naya = assigned par koi kaam nahi + koi contact-after date bhi nahi (contact-after wale due-date flow me aate hain)
+const isNew = L => OPEN.includes(L.status) && !(L.followUps && L.followUps.length) && !L.contactAfter;
 const needsAction = L => isNew(L) || isDue(L);                                        // pending = naya ya due
 function addDays(n){ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
 // Lead ka "last update" time — nayi lead ya jisme koi naya kaam (follow-up/edit/status) hua, wo upar.
@@ -784,8 +884,10 @@ function sideHTML(){
       </div>
     </div>
     <nav class="nav">
+      <button class="nav-item ${route.view==='home'?'on':''}" onclick="openHome()">${IC.home} Home</button>
       <button class="nav-item ${route.view==='huddle'?'on':''}" onclick="openHuddle()">${IC.inbox} Huddle</button>
       <button class="nav-item ${route.view==='att'?'on':''}" onclick="openAtt()">${IC.check} Attendance</button>
+      <button class="nav-item ${route.view==='wall'?'on':''}" onclick="openWall()">${IC.wall} Wall</button>
       <button class="nav-item ${route.view==='help'?'on':''}" onclick="tab('help')">❓ Help</button>
     </nav>
     <div class="side-foot">
@@ -812,12 +914,18 @@ function sideHTML(){
       </div>
     </div>
     <nav class="nav">
+      <button class="nav-item ${route.view==='home'?'on':''}" onclick="openHome()">${IC.home} Home</button>
       <button class="nav-item ${route.view==='today'?'on':''}" onclick="tab('today')">${IC.cal} Today${dueToday?` <span class="dot" style="background:var(--brand)">${dueToday}</span>`:''}</button>
       <button class="nav-item ${route.view==='reminders'?'on':''}" onclick="tab('reminders')">${IC.bell} Reminders${pending?` <span class="dot">${pending}</span>`:''}</button>
       <button class="nav-item ${route.view==='list'?'on':''}" onclick="tab('list')">${IC.users} Leads</button>
       <button class="nav-item ${route.view==='kanban'?'on':''}" onclick="tab('kanban')">${IC.board} Board</button>
+      <button class="nav-item ${route.view==='team'?'on':''}" onclick="openTeam()">${IC.team} Team</button>
       <button class="nav-item ${route.view==='huddle'?'on':''}" onclick="openHuddle()">${IC.inbox} Huddle</button>
       <button class="nav-item ${route.view==='att'?'on':''}" onclick="openAtt()">${IC.check} Attendance</button>
+      ${canViewAllHA()?`<button class="nav-item ${route.view==='board'?'on':''}" onclick="openBoard()">${IC.board} Score Board</button>`:''}
+      ${isAdmin()?`<button class="nav-item ${route.view==='funnel'?'on':''}" onclick="openFunnel()">📈 Funnel</button>`:''}
+      ${isAdmin()?`<button class="nav-item" onclick="openColonyMgr()">🏘️ Colony fix</button>`:''}
+      <button class="nav-item ${route.view==='wall'?'on':''}" onclick="openWall()">${IC.wall} Wall</button>
       <button class="nav-item" onclick="toast('Demo mode: Call Log needs a phone')">${IC.phone} Call Log</button>
       <button class="nav-item ${route.view==='forms'?'on':''}" onclick="tab('forms')">📄 Forms</button>
       <button class="nav-item ${route.view==='help'?'on':''}" onclick="tab('help')">❓ Help</button>
@@ -842,15 +950,15 @@ function sideHTML(){
 
 // ── LIST ─────────────────────────────────────────────────────────────────────
 function listHTML(){
-  const list = filtered();
   const colonies = uniq(leads.map(L=>L.colony));
   const execs = uniq(leads.flatMap(execsOf));
   return `<div class="main-inner">
     <h2 class="page-title">All Leads</h2>
     <div class="page-sub">${leads.length} total · ${leads.filter(isDue).length} follow-up due</div>
+    ${isAdmin()?`<button class="btn ghost sm" style="margin:2px 0 10px" onclick="leadReport()">📋 Lead Report (kisne daali)</button>`:''}
     ${reminderBanner()}
     <div class="search-wrap">${IC.search}
-      <input placeholder="Search by name, mobile or plot…" value="${esc(f.q)}" oninput="f.q=this.value;page=1;debouncedRender()">
+      <input placeholder="Search by name, mobile or plot…" value="${esc(f.q)}" oninput="f.q=this.value;page=1;filterLeads()">
     </div>
     <div class="scroll-x" style="margin-top:12px">
       <span class="chip ${f.status===''?'on':''}" onclick="setStatus('')">All</span>
@@ -870,14 +978,202 @@ function listHTML(){
     </div>
     ${(f.status||f.colony||f.exec||f.from||f.to||f.q)?
       `<button class="btn ghost sm" style="margin-top:11px" onclick="clearFilters()">✕ Clear filters</button>`:''}
-    <div class="tiny" style="margin:16px 2px 9px">Total ${list.length} lead${list.length!==1?'s':''}</div>
+    <div id="leadResults">${leadResultsHTML()}</div>
+  </div>
+  <button class="fab" onclick="openLeadForm()">${IC.add} Add Lead</button>`;
+}
+function leadResultsHTML(){
+  const list = filtered();
+  return `<div class="tiny" style="margin:16px 2px 9px">Total ${list.length} lead${list.length!==1?'s':''}</div>
     ${list.length? `
       <div class="leads leads-cards">${pageSlice(list).map(leadCard).join('')}</div>
       <table class="leads-table">${tableHTML(pageSlice(list))}</table>
       ${pagerHTML(list.length)}` :
-      `<div class="card"><div class="empty">${IC.inbox}<div>No leads found.<br>Click <b>Add Lead</b> to get started.</div></div></div>`}
-  </div>
-  <button class="fab" onclick="openLeadForm()">${IC.add} Add Lead</button>`;
+      `<div class="card"><div class="empty">${IC.inbox}<div>No leads found.<br>Click <b>Add Lead</b> to get started.</div></div></div>`}`;
+}
+// search/filter: sirf results update karo — input ko mat chhuo (keyboard khula rahe)
+function filterLeads(){ const el=document.getElementById('leadResults'); if(el) el.innerHTML=leadResultsHTML(); }
+
+// ── FUNNEL VALUE dashboard (admin) ──
+let fn = { colony:'', avg:parseInt(localStorage.getItem('fnAvg'))||600000, target:parseInt(localStorage.getItem('fnTarget'))||0 };
+function _funnelTotal(colony){
+  const base=leads.filter(L=>!colony||L.colony===colony);
+  let t=0; STATUSES.forEach(s=>{ if(s.p>0 && s.k!=='booked') t += base.filter(L=>L.status===s.k).length * fn.avg * (s.p/100); });
+  return t;
+}
+function openFunnel(){ if(!isAdmin()){ alert('Sirf admin'); return; } route.view='funnel'; route.id=null; render(); window.scrollTo(0,0); }
+// funnel stage pe click → us colony+stage ki leads list
+function fnGoStage(k){ f.colony=fn.colony||''; f.status=k; f.q=''; f.exec=''; f.from=''; f.to=''; page=1; tab('list'); }
+// ── Line of Action (strategy card) — sirf admins edit ──
+function openLOA(id){
+  if(!canEditLOA()){ alert('Sirf admin Line of Action edit kar sakte hain'); return; }
+  const L=leads.find(x=>x.id===id); if(!L) return;
+  modal(`<h2>🎯 Line of Action</h2><div class="msub">Is customer ki poori strategy (kal-call jaisa next-step nahi — overall plan)</div>
+    <div class="field"><textarea id="loa_txt" rows="6" placeholder="Pehle rishta banao · har 7 din relevant properties bhejo · beti ki shaadi ke baad detailed requirement meeting...">${esc(L.lineOfAction||'')}</textarea></div>
+    <div class="row" style="gap:11px"><button class="btn ghost grow" onclick="this.closest('.modal-bg').remove()">Cancel</button>
+    <button class="btn grow" onclick="saveLOA('${id}')">Save</button></div>`);
+}
+function saveLOA(id){
+  const L=leads.find(x=>x.id===id); if(!L) return;
+  const txt=(val('loa_txt')||'').trim(), prev=L.lineOfAction||'';
+  if(txt===prev){ const m=document.querySelector('.modal-bg'); if(m)m.remove(); return; }
+  const hist=[...(L.loaHistory||[]), { text:txt, prevText:prev, by:(user&&user.email||''), ts:Date.now() }];
+  L.lineOfAction=txt; L.loaHistory=hist;
+  col().doc(id).set({ lineOfAction:txt, loaHistory:hist },{merge:true})
+    .then(()=>{ toast('Line of Action saved ✓'); const m=document.querySelector('.modal-bg'); if(m)m.remove(); render(); })
+    .catch(e=>alert(e.message));
+}
+function loaHist(id){
+  const L=leads.find(x=>x.id===id); if(!L) return;
+  const hist=(L.loaHistory||[]).slice().reverse();
+  modal(`<h2>🎯 Line of Action — history</h2>
+    <div style="max-height:55vh;overflow:auto">${hist.length?hist.map(h=>`<div style="border-top:1px solid var(--line);padding:9px 0">
+      <div class="tiny" style="color:var(--muted)">${esc((h.by||'').split('@')[0])} · ${fmtDate(new Date(h.ts).toISOString().slice(0,10))}</div>
+      <div style="white-space:pre-wrap;margin-top:3px">${esc(h.text||'(khaali)')}</div></div>`).join(''):'<div class="tiny">Koi history nahi</div>'}</div>
+    <div class="row" style="margin-top:12px"><button class="btn ghost grow" onclick="this.closest('.modal-bg').remove()">Close</button></div>`);
+}
+// ── Colony Cleanup: duplicate/typo colonies ko ek canonical naam me merge ──
+function openColonyMgr(){
+  if(!isAdmin()){ alert('Sirf admin'); return; }
+  const counts={}; leads.forEach(L=>{ const c=(L.colony||'').trim(); if(c) counts[c]=(counts[c]||0)+1; });
+  const names=Object.keys(counts).sort((a,b)=>a.localeCompare(b));
+  const rows=names.map(n=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:.88rem">
+      <input type="checkbox" class="colchk" value="${esc(n)}" style="width:auto;flex:none">
+      <span class="grow" style="cursor:pointer" onclick="document.getElementById('col_canon').value='${esc(n).replace(/'/g,"\\'")}'">${esc(n)}</span>
+      <span class="tiny" style="color:var(--muted);flex:none">${counts[n]}</span></label>`).join('');
+  modal(`<h2>🏘️ Colony Cleanup</h2><div class="msub">Typo/duplicate colonies ko ek sahi naam me merge karo</div>
+    <div class="field"><label>Sahi (canonical) naam</label><input id="col_canon" placeholder="jaise Vinayak Residency"><div class="tiny" style="margin-top:3px">Tip: neeche kisi sahi naam pe tap karo to wo yahan aa jayega.</div></div>
+    <div class="tiny" style="margin:2px 0 6px">Jin-jin colonies ko is naam me merge karna hai unhe tick karo:</div>
+    <div style="max-height:40vh;overflow:auto;margin-bottom:12px">${rows||'<div class="tiny">Koi colony nahi.</div>'}</div>
+    <div class="row" style="gap:11px"><button class="btn ghost grow" onclick="this.closest('.modal-bg').remove()">Close</button>
+    <button class="btn grow" onclick="colonyMerge()">Merge</button></div>`);
+}
+async function colonyMerge(){
+  const canon=(val('col_canon')||'').trim();
+  if(!canon){ alert('Pehle sahi (canonical) naam daalo'); return; }
+  const picked=[...document.querySelectorAll('.colchk:checked')].map(c=>c.value).filter(c=>c!==canon);
+  if(!picked.length){ alert('Kam se kam ek colony tick karo (jo merge karni hai)'); return; }
+  const affected=leads.filter(L=>picked.includes((L.colony||'').trim()));
+  if(!affected.length){ alert('In colonies me koi lead nahi.'); return; }
+  if(!confirm(affected.length+' leads ko "'+canon+'" me merge karein?\n('+picked.length+' naam → 1)')) return;
+  try{
+    const batch=db.batch();
+    affected.forEach(L=>batch.update(col().doc(L.id),{colony:canon}));
+    await batch.commit();
+    toast(affected.length+' leads merged ✓');
+    const m=document.querySelector('.modal-bg'); if(m)m.remove();
+  }catch(e){ alert('Merge fail: '+e.message); }
+}
+function fnSet(k,v){
+  if(k==='colony') fn.colony=v;
+  else { fn[k]=parseInt(String(v).replace(/[^0-9]/g,''))||0; localStorage.setItem(k==='avg'?'fnAvg':'fnTarget', fn[k]); }
+  render();
+}
+function funnelHTML(){
+  if(!isAdmin()) return `<div class="main-inner"><div class="empty">Sirf admin ke liye.</div></div>`;
+  const colonies=uniq(leads.map(L=>L.colony).filter(Boolean));
+  const base=leads.filter(L=>!fn.colony||L.colony===fn.colony);
+  const stages=STATUSES.filter(s=>s.p>0 && s.k!=='booked');   // funnel = Prospect→Hot
+  let funnelTotal=0;
+  const sd=stages.map(s=>{ const cnt=base.filter(L=>L.status===s.k).length; return {s, cnt, w:cnt*fn.avg*(s.p/100)}; });
+  funnelTotal=sd.reduce((a,x)=>a+x.w,0);
+  const openCnt=sd.reduce((a,x)=>a+x.cnt,0), rawPipe=openCnt*fn.avg, maxC=Math.max(1,...sd.map(x=>x.cnt));
+  const wonCnt=base.filter(L=>L.status==='booked').length, bookedRev=wonCnt*fn.avg;
+  const ratio=fn.target?(funnelTotal/fn.target):0, ok=ratio>=10, prog=Math.min(100,Math.round(ratio/10*100));
+  // ── glassy KPI tile ──
+  const tile=(v,l,sub,ic,icbg,iccol)=>`<div style="background:linear-gradient(180deg,#fff,#fbfcff);border:1px solid var(--line);border-radius:18px;padding:15px 16px;box-shadow:0 6px 16px -8px rgba(16,24,40,.14),inset 0 1px 0 #fff">
+      ${ic?`<div style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:8px;background:${icbg};color:${iccol};box-shadow:inset 0 1px 0 #fff,0 2px 5px rgba(16,24,40,.08)">${ic}</div>`:''}
+      <div class="tiny" style="color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700">${l}</div>
+      <div style="font-size:1.4rem;font-weight:800;margin-top:5px;letter-spacing:-.02em">${v}</div>
+      ${sub?`<div class="tiny" style="color:var(--muted);margin-top:2px">${sub}</div>`:''}</div>`;
+  const hero=`<div style="background:linear-gradient(135deg,#5b50f0 0%,#7c3aed 55%,#a855f7 100%);color:#fff;border-radius:20px;padding:18px;box-shadow:0 20px 40px -16px rgba(99,80,235,.6),inset 0 1px 0 rgba(255,255,255,.25);position:relative;overflow:hidden">
+      <div style="position:absolute;right:-30px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.12)"></div>
+      <div class="tiny" style="color:rgba(255,255,255,.92);text-transform:uppercase;letter-spacing:.05em;font-weight:700">Total funnel value</div>
+      <div style="font-size:2.1rem;font-weight:800;margin-top:5px;letter-spacing:-.02em;color:#fff">${inr(funnelTotal)}</div>
+      <div class="tiny" style="color:rgba(255,255,255,.88);margin-top:3px">${openCnt} open leads · ${inr(rawPipe)} max pipeline</div></div>`;
+  // ── 3D funnel SVG (dynamic) ──
+  const minW=100, maxW=320, cx=200, top=24, h=68, gap=14;
+  const widths=sd.map(x=>minW+(x.cnt/maxC)*(maxW-minW));
+  let defs='', sbody='';
+  sd.forEach((x,i)=>{
+    const y=top+i*(h+gap), wT=widths[i], wB=(i<sd.length-1?widths[i+1]:Math.max(70,widths[i]*0.62));
+    const TL=cx-wT/2, TR=cx+wT/2, BL=cx-wB/2, BR=cx+wB/2, yB=y+h;
+    const col=x.s.c, topc=_shade(col,24), botc=_shade(col,-16), rim=_shade(col,44), ry=Math.max(6,Math.min(11,wT*0.032)), rb=wB/2;
+    defs+=`<linearGradient id="fg${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${topc}"/><stop offset="1" stop-color="${botc}"/></linearGradient>`;
+    sbody+=`<g style="cursor:pointer" onclick="fnGoStage('${x.s.k}')"><title>${esc(x.s.l)} ki leads dekho</title>`
+      +`<path d="M${TL} ${y} L${TR} ${y} L${BR} ${yB} A${rb} ${(ry*0.8).toFixed(1)} 0 0 1 ${BL} ${yB} Z" fill="url(#fg${i})" filter="url(#fsh)"/>`
+      +`<ellipse cx="${cx}" cy="${y}" rx="${wT/2}" ry="${ry.toFixed(1)}" fill="${rim}"/>`
+      +`<text x="${cx}" y="${y+h/2-3}" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">${esc(x.s.l)} · ${x.cnt}</text>`
+      +`<text x="${cx}" y="${y+h/2+15}" text-anchor="middle" fill="#fff" font-size="12" font-weight="600" opacity=".95">${inr(x.w)} · ${x.s.p}%</text></g>`;
+    if(i<sd.length-1 && x.cnt>0){ const cr=Math.round(sd[i+1].cnt/x.cnt*100); sbody+=`<text x="392" y="${yB+gap-2}" text-anchor="end" fill="#8a97b1" font-size="10.5" font-weight="600">${cr}% ↓</text>`; }
+  });
+  const svgH=top+sd.length*(h+gap)+2;
+  const funnelSvg=`<svg viewBox="0 0 400 ${svgH}" style="width:100%;max-width:460px;height:auto;display:block;margin:0 auto" font-family="Inter,system-ui,Arial"><defs>${defs}<filter id="fsh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0b1020" flood-opacity="0.22"/></filter></defs>${sbody}</svg>`;
+  const ringCol=ok?'#16a34a':'#f59e0b';
+  const ratioTxt = !fn.target ? '—' : (ratio>=100?'99×+':ratio.toFixed(1)+'×');
+  const ring=`<div style="width:94px;height:94px;border-radius:50%;flex:none;display:grid;place-items:center;background:conic-gradient(${ringCol} ${prog}%,#e8ecf6 0);box-shadow:0 6px 16px -6px rgba(0,0,0,.2),inset 0 2px 5px rgba(0,0,0,.08)"><div style="width:74px;height:74px;border-radius:50%;background:linear-gradient(180deg,#fff,#f6f8fc);display:grid;place-items:center;font-weight:700;font-size:1.15rem;color:${fn.target?(ok?'#16a34a':'#b45309'):'#94a3b8'};box-shadow:inset 0 1px 0 #fff,0 1px 3px rgba(0,0,0,.08)">${ratioTxt}</div></div>`;
+  return `<div class="main-inner" style="font-family:Inter,system-ui,Arial">
+    <div class="row" style="align-items:center;gap:8px"><button class="btn ghost sm" onclick="tab('list')">← Back</button><h2 class="page-title" style="margin:0">Sales Funnel</h2></div>
+    <div class="tiny" style="color:var(--muted);margin:2px 0 14px">Pipeline value · stage probability se weighted</div>
+    <div class="grid2">
+      <div><label class="tiny">Project (colony) · <a href="#" onclick="openColonyMgr();return false" style="color:var(--brand);font-weight:700">🏘️ fix dups</a></label><select onchange="fnSet('colony',this.value)"><option value="">Saari colonies</option>${colonies.map(c=>`<option ${fn.colony===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+      <div><label class="tiny">Avg deal value (₹)</label><input type="number" value="${fn.avg}" onchange="fnSet('avg',this.value)"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px">
+      <div style="grid-column:1/3">${hero}</div>
+      ${tile(openCnt,'Open leads','','👥','#eef1ff','#5145e5')}
+      ${tile(inr(bookedRev),'Won',wonCnt+' deals','✅','#eafaf2','#059669')}
+    </div>
+    <div class="sec" style="margin-top:22px">Pipeline funnel</div>
+    <div class="card" style="padding:16px 8px;border-radius:18px;box-shadow:0 10px 26px -14px rgba(16,24,40,.18),inset 0 1px 0 #fff">${openCnt? funnelSvg : '<div class="tiny" style="padding:16px;text-align:center;color:var(--muted)">Is project me abhi koi open lead nahi.</div>'}</div>
+    <div class="sec" style="margin-top:22px">10× target</div>
+    <div class="card" style="border-radius:18px;box-shadow:0 10px 26px -14px rgba(16,24,40,.18),inset 0 1px 0 #fff">
+      <label class="tiny">Revenue target (₹)</label>
+      <input type="number" value="${fn.target||''}" placeholder="e.g. 50000000" onchange="fnSet('target',this.value)">
+      <div class="row" style="margin-top:14px;align-items:center;gap:16px">
+        ${ring}
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:1.02rem;letter-spacing:-.01em">${inr(funnelTotal)} <span style="color:var(--muted);font-weight:500;font-size:.82rem">/ ${fn.target?inr(fn.target):'—'} target</span></div>
+          <div style="font-size:.82rem;font-weight:600;margin-top:5px;color:${fn.target?(ok?'#16a34a':'#b45309'):'var(--muted)'}">${fn.target?(ok?'✓ 10× paar — badhiya!':'⚠ abhi '+ratio.toFixed(1)+'× hai; 10× chahiye — funnel badhao'):'Target daalo to 10× dikhega'}</div>
+        </div>
+      </div>
+    </div>
+    <div class="tiny" style="margin:14px 2px;color:var(--muted)">Funnel = Prospect→Hot (weighted). Won realized revenue hai (alag). Avg value abhi global; per-lead baad me.</div>
+  </div>`;
+}
+
+// ── Date-wise Lead Report (kisne kaun si lead daali) ──
+let _lrRange='today';
+function _leadDate(L){
+  if(L.createdAtSys) return new Date(L.createdAtSys+5.5*3600e3).toISOString().slice(0,10);  // system time (IST)
+  if(L.createdAt) return String(L.createdAt).slice(0,10);
+  if(L.ts) return new Date(L.ts+5.5*3600e3).toISOString().slice(0,10);
+  return '';
+}
+function _lrDates(){
+  const t=today();
+  if(_lrRange==='today') return [t];
+  if(_lrRange==='yest'){ const d=new Date(t+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()-1); return [d.toISOString().slice(0,10)]; }
+  if(_lrRange==='week') return _weekDates(t);
+  if(_lrRange==='lastweek'){ const d=new Date(t+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()-7); return _weekDates(d.toISOString().slice(0,10)); }
+  return [t];
+}
+function leadReport(){ if(!isAdmin()){ alert('Sirf admin'); return; } _lrRange='today'; _lrRender(); }
+function _lrRender(){
+  const ex=document.querySelector('.modal-bg'); if(ex) ex.remove();
+  const dates=new Set(_lrDates());
+  const inRange=leads.filter(L=>dates.has(_leadDate(L)));
+  const g={}; inRange.forEach(L=>{ const k=L.createdByName||(L.createdBy?L.createdBy.split('@')[0]:'Purani lead'); (g[k]=g[k]||[]).push(L); });
+  const names=Object.keys(g).sort((a,b)=>g[b].length-g[a].length);
+  const chip=(k,l)=>`<button class="chip ${_lrRange===k?'on':''}" onclick="_lrRange='${k}';_lrRender()">${l}</button>`;
+  const body=names.length? names.map(n=>`<div style="border-top:1px solid var(--line);padding:9px 0">
+      <div class="row" style="justify-content:space-between;align-items:center"><b>${esc(n)}</b><span class="tiny" style="font-weight:800">${g[n].length}</span></div>
+      ${g[n].map(L=>`<div class="tiny" style="color:var(--muted);padding:2px 0;cursor:pointer" onclick="this.closest('.modal-bg').remove();go('detail','${esc(L.id)}')">• ${esc(L.name||'—')}${L.mobile?' · '+esc(L.mobile):''}</div>`).join('')}
+    </div>`).join('') : '<div class="tiny" style="padding:12px 0">Is range me koi lead nahi.</div>';
+  modal(`<h2>📋 Lead Report</h2><div class="msub">Kisne kaun si lead daali · Total ${inRange.length}</div>
+    <div class="scroll-x" style="display:flex;gap:6px;margin-bottom:10px">${chip('today','Aaj')}${chip('yest','Kal')}${chip('week','Is hafta')}${chip('lastweek','Pichhla hafta')}</div>
+    <div style="max-height:50vh;overflow:auto">${body}</div>
+    <div class="row" style="margin-top:12px"><button class="btn ghost grow" onclick="this.closest('.modal-bg').remove()">Close</button></div>`);
 }
 function pageSlice(arr){
   const pages=Math.max(1,Math.ceil(arr.length/pageSize));
@@ -904,19 +1200,19 @@ function goPage(n){ page=n; render(); }
 function tableHTML(items){
   return `<thead><tr>
     <th>Contact</th><th>Business</th><th>Colony / Plot</th><th>Status</th>
-    <th>Received</th><th>Next action</th><th>Executive</th><th></th></tr></thead>
+    <th>Received</th><th>Next action</th><th>Owner</th><th></th></tr></thead>
     <tbody>${items.map(tableRow).join('')}</tbody>`;
 }
 function tableRow(L){
   const fu=lastFU(L); const wa=digits(L.mobile), waNo=wa.length===10?'91'+wa:wa; const od=isOverdue(L);
-  return `<tr onclick="go('detail','${L.id}')">
-    <td><b>${esc(L.name)}</b><div class="tiny">${esc(L.mobile)}</div></td>
+  return `<tr onclick="go('detail','${L.id}')" style="background:${stMap[L.status]?.bg||'#fff'}">
+    <td style="border-left:4px solid ${stMap[L.status]?.c||'#94a3b8'}"><b>${esc(L.name)}</b><div class="tiny">${esc(L.mobile)}</div></td>
     <td class="tiny">${esc(L.occupation||'—')}</td>
     <td class="tiny">${esc(L.colony||'—')}${L.plot?' · '+esc(L.plot):''}</td>
     <td>${badge(L.status)}</td>
     <td class="tiny">${fmtDate(L.createdAt)||'—'}</td>
     <td class="tiny" style="${od?'color:var(--danger);font-weight:600':''}">${fu&&fu.nextDate?fmtDate(fu.nextDate)+(fu.nextAction?' · '+esc(fu.nextAction):''):'—'}</td>
-    <td class="tiny">${esc(execStr(L))}</td>
+    <td class="tiny">${esc(ownerOf(L))}${assignedExtra(L).length?` <span style="color:var(--muted)">+${assignedExtra(L).length}</span>`:''}</td>
     <td onclick="event.stopPropagation()"><span style="display:inline-flex;gap:6px">
       <a class="plain" href="tel:${esc(L.mobile)}"><button class="tbtn tcall">${IC.phone}</button></a>
       <a class="plain" href="https://wa.me/${waNo}" target="_blank" rel="noopener"><button class="tbtn twa">${IC.wa}</button></a>
@@ -927,13 +1223,14 @@ function leadCard(L){
   const fu = lastFU(L); const od = isOverdue(L);
   const next = fu&&fu.nextDate ? `Next: ${fmtDate(fu.nextDate)}${fu.nextAction?' · '+esc(fu.nextAction):''}` :
     (fu?'Follow-up done':'No follow-up yet');
-  return `<div class="card lead" onclick="go('detail','${L.id}')">
+  return `<div class="card lead" style="border-left:4px solid ${stMap[L.status]?.c||'#94a3b8'};background:${stMap[L.status]?.bg||'#fff'}" onclick="go('detail','${L.id}')">
     <div class="avatar" style="background:${avatarColor(L.name)}">${esc(L.name[0]||'?')}</div>
     <div class="grow">
       <div class="row"><b class="grow ell">${esc(L.name)}</b>${badge(L.status)}</div>
-      <div class="tiny ell">${esc(L.colony||'—')}${L.plot?' · Plot '+esc(L.plot):''} · ${esc(execStr(L))}</div>
+      <div class="tiny ell">${esc(L.colony||'—')}${L.plot?' · Plot '+esc(L.plot):''} · 👤 ${esc(ownerOf(L))}${assignedExtra(L).length?' +'+assignedExtra(L).length:''}</div>
       <div class="tiny ell" style="display:flex;align-items:center;gap:6px;${od?'color:var(--danger);font-weight:600':''}">
         ${od?'<span class="odot"></span>':''}${esc(next)}</div>
+      ${L.lineOfAction?`<div class="tiny ell" style="color:#4338ca;font-weight:600;margin-top:1px">🎯 ${esc(L.lineOfAction.split('\n')[0])}</div>`:''}
     </div>
     <span class="chev">${IC.chev}</span>
   </div>`;
@@ -996,8 +1293,8 @@ function todayCard(L, urgent){
     <div class="avatar" style="background:${avatarColor(L.name)}">${esc(L.name[0]||'?')}</div>
     <div class="grow" onclick="go('detail','${L.id}')" style="cursor:pointer">
       <div class="row"><b class="grow ell">${esc(L.name)}</b>${badge(L.status)}</div>
-      <div class="tiny ell">${esc(L.colony||'—')}${L.plot?' · Plot '+esc(L.plot):''} · 👤 ${esc(execStr(L))}</div>
-      <div class="tiny ell" style="color:${urgent?'var(--danger)':'var(--brand)'};font-weight:600">${fu && fu.nextDate ? (urgent?'⚠ ':'')+fmtDate(fu.nextDate)+(fu.nextAction?' · '+esc(fu.nextAction):'') : '🆕 Naya — kaam shuru karo'}</div>
+      <div class="tiny ell">${esc(L.colony||'—')}${L.plot?' · Plot '+esc(L.plot):''} · 👤 ${esc(ownerOf(L))}${assignedExtra(L).length?' +'+assignedExtra(L).length:''}</div>
+      <div class="tiny ell" style="color:${urgent?'var(--danger)':'var(--brand)'};font-weight:600">${fu && fu.nextDate ? (urgent?'⚠ ':'')+fmtDate(fu.nextDate)+(fu.nextAction?' · '+esc(fu.nextAction):'') : (L.contactAfter ? (urgent?'⚠ ':'')+'📅 Contact after '+fmtDate(L.contactAfter) : '🆕 Naya — kaam shuru karo')}</div>
     </div>
     <a class="plain" href="tel:${esc(L.mobile)}"><button class="iconbtn" style="background:var(--ok);border:none">${IC.phone}</button></a>
     <a class="plain" href="https://wa.me/${waNo}" target="_blank" rel="noopener"><button class="iconbtn" style="background:var(--wa);border:none">${IC.wa}</button></a>
@@ -1029,11 +1326,19 @@ function detailHTML(){
       </div>
       <button class="btn wide" style="background:#0ea5e9;margin-top:11px" onclick="openWaTemplates('${L.id}')">${IC.wa} WhatsApp Template bhejein (Hindi)</button>
 
+      ${(()=>{ const loa=L.lineOfAction||'', hist=L.loaHistory||[], last=hist[hist.length-1];
+        return `<div class="card" style="padding:14px;border-left:4px solid #6366f1;background:linear-gradient(180deg,#f5f3ff,#ffffff);margin-top:14px">
+          <div class="row" style="justify-content:space-between;align-items:center"><b style="color:#4338ca">🎯 Line of Action</b>
+            ${canEditLOA()?`<button class="btn ghost sm" onclick="openLOA('${L.id}')">${loa?'Edit':'Set'}</button>`:''}</div>
+          ${loa?`<div style="margin-top:8px;white-space:pre-wrap">${esc(loa)}</div>${last?`<div class="tiny" style="color:var(--muted);margin-top:7px">Last updated by ${esc((last.by||'').split('@')[0])} · ${fmtDate(new Date(last.ts).toISOString().slice(0,10))}${hist.length>1?` · <a href="#" onclick="loaHist('${L.id}');return false" style="color:var(--brand);font-weight:700">history (${hist.length})</a>`:''}</div>`:''}`
+          :`<div class="tiny" style="color:var(--muted);margin-top:7px">Plan abhi set nahi hua${canEditLOA()?' — "Set" dabao':' (sirf admin set karte)'}.</div>`}
+        </div>`; })()}
+
       <div class="sec">Lead details ${badge(L.status)}</div>
       <div class="card" style="padding:4px 15px">
         ${kv('Occupation',L.occupation)}${kv('City / Address',L.city)}${kv('Colony',L.colony)}
         ${kv('Preferred plot',L.plot)}${kv('Lead source',L.source + (L.agent?` (${L.agent})`:''))}
-        ${kv('Executive',execStr(L))}${kv('Added on',fmtDate(L.createdAt))}
+        ${kv('Owner',ownerOf(L))}${assignedExtra(L).length?kv('Assigned',assignedExtra(L).join(', ')):''}${kv('Added on',fmtDate(L.createdAt))}${kv('Added by', L.createdByName||(L.createdBy?L.createdBy.split('@')[0]:'')||'Purani lead')}
         ${(L.rec||L.photo)?`<div style="padding:10px 0 6px">${attHTML(L.rec,IC.mic,'Recording')}${attHTML(L.photo,IC.cam,'Photo')}</div>`:''}
         ${(L.rec && !(L.audit&&L.audit.score))?`<button class="btn ghost sm" style="margin:2px 0 8px" onclick="manualAudit('${L.id}',null,this)">🎧 Audit</button>`:''}
         ${auditBox(L.audit)}
@@ -1046,11 +1351,20 @@ function detailHTML(){
           `<div class="tiny" style="padding:14px 0">Not filled yet — complete it on the site visit.</div>`}
       </div>
 
+      ${(()=>{ const loc=(L.locations||[]).join(', ');
+        const budget=(L.budgetMin||L.budgetMax)?((L.budgetMin?inr(L.budgetMin):'?')+' – '+(L.budgetMax?inr(L.budgetMax):'?')):'';
+        const loan=L.loan==='yes'?('Haan'+(L.loanAmt?' · '+inr(L.loanAmt):'')+(L.loanStatus?' · '+esc(L.loanStatus):'')):(L.loan==='no'?'Nahi':'');
+        const rows=[['Locations',loc],['Property type',L.ptype],['Size',L.size],['Budget',budget],['Cash',L.cash?inr(L.cash):''],['Loan',loan],['Token ready',L.token==='yes'?'Haan':(L.token==='no'?'Nahi':'')],['Referred by',L.refBy],['Contact after',L.contactAfter?fmtDate(L.contactAfter):'']];
+        if(!rows.some(r=>r[1]) && !L.family) return '';
+        return `<div class="sec"><span class="grow">Requirement &amp; Context</span><button class="btn ghost sm" onclick="openLeadForm('${L.id}')">Edit</button></div>
+          <div class="card" style="padding:4px 15px">${rows.map(r=>kv(r[0],r[1])).join('')}${L.family?`<div class="kv" style="display:block;border:none"><b>Family / context</b><div style="margin-top:3px;white-space:pre-wrap">${esc(L.family)}</div></div>`:''}</div>`;
+      })()}
+
       <div class="sec">Follow-up history (${(L.followUps||[]).length})</div>
       ${(L.followUps||[]).length? L.followUps.map(fuCard).join('') :
         `<div class="tiny" style="margin-bottom:11px">No follow-ups yet. Add one below.</div>`}
       <button class="btn wide" onclick="openFU('${L.id}')">${IC.add} Add Follow-up</button>
-      <button class="btn danger wide" style="margin-top:11px" onclick="delLead('${L.id}')">Delete lead</button>
+      ${isAdmin()?`<button class="btn danger wide" style="margin-top:11px" onclick="delLead('${L.id}')">Delete lead</button>`:''}
     </div>
   </div></div>`;
 }
@@ -1083,25 +1397,36 @@ function kanbanHTML(){
       if(!(L.name.toLowerCase().includes(q)||L.mobile.includes(f.q)||(L.plot||'').toLowerCase().includes(q))) return false; }
     return true;
   });
-  const cols = STATUSES.map(s=>{
+  const cols = kanbanColsHTML();
+  return `<div class="main-inner">
+    <h2 class="page-title">Pipeline</h2>
+    <div class="page-sub">Drag a card to change its stage · ${base.length} leads</div>
+    <div class="kfilters">
+      <div class="search-wrap">${IC.search}<input placeholder="Search…" value="${esc(f.q)}" oninput="f.q=this.value;filterKanban()"></div>
+      <select onchange="f.colony=this.value;render()"><option value="">All colonies</option>${colonies.map(c=>`<option ${f.colony===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
+      <select onchange="f.exec=this.value;render()"><option value="">All executives</option>${execs.map(c=>`<option ${f.exec===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
+    </div>
+    <div class="kanban" id="kanbanCols">${cols}</div>
+  </div>
+  <button class="fab" onclick="openLeadForm()">${IC.add} Add Lead</button>`;
+}
+function kanbanColsHTML(){
+  const base=leads.filter(L=>{
+    if(f.colony && L.colony!==f.colony) return false;
+    if(f.exec && !execsOf(L).includes(f.exec)) return false;
+    if(f.q){ const q=f.q.toLowerCase();
+      if(!(L.name.toLowerCase().includes(q)||L.mobile.includes(f.q)||(L.plot||'').toLowerCase().includes(q))) return false; }
+    return true;
+  });
+  return STATUSES.map(s=>{
     const items = base.filter(L=>L.status===s.k);
     return `<div class="kcol" ondragover="kallow(event,this)" ondragleave="this.classList.remove('drop')" ondrop="kdrop(event,'${s.k}')">
       <div class="kcol-h"><span class="dotc" style="background:${s.c}"></span>${s.l}<span class="cnt">${items.length}</span></div>
       ${items.map(kcard).join('')||'<div class="tiny" style="padding:6px">No leads.</div>'}
     </div>`;
   }).join('');
-  return `<div class="main-inner">
-    <h2 class="page-title">Pipeline</h2>
-    <div class="page-sub">Drag a card to change its stage · ${base.length} leads</div>
-    <div class="kfilters">
-      <div class="search-wrap">${IC.search}<input placeholder="Search…" value="${esc(f.q)}" oninput="f.q=this.value;debouncedRender()"></div>
-      <select onchange="f.colony=this.value;render()"><option value="">All colonies</option>${colonies.map(c=>`<option ${f.colony===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
-      <select onchange="f.exec=this.value;render()"><option value="">All executives</option>${execs.map(c=>`<option ${f.exec===c?'selected':''}>${esc(c)}</option>`).join('')}</select>
-    </div>
-    <div class="kanban">${cols}</div>
-  </div>
-  <button class="fab" onclick="openLeadForm()">${IC.add} Add Lead</button>`;
 }
+function filterKanban(){ const el=document.getElementById('kanbanCols'); if(el) el.innerHTML=kanbanColsHTML(); }
 function kcard(L){
   const fu=lastFU(L); const wa=digits(L.mobile), waNo=wa.length===10?'91'+wa:wa; const od=isOverdue(L);
   return `<div class="kcard" draggable="true" ondragstart="kdrag(event,'${L.id}',this)" ondragend="this.classList.remove('dragging')">
@@ -1167,6 +1492,15 @@ function openLeadForm(id){
   const opt = (arr,sel)=>arr.map(o=>`<option ${o===sel?'selected':''}>${esc(o)}</option>`).join('');
   modal(`
     <h2>${id?'Edit lead':'Add lead'}</h2><div class="msub">Add only after the lead is qualified</div>
+    ${!id?`<button type="button" class="btn ghost wide" id="aiToggle" style="margin-bottom:10px" onclick="document.getElementById('aiBox').style.display='block';this.style.display='none'">✨ AI se bharo — bol ya paste karo</button>
+    <div id="aiBox" style="display:none;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:12px;margin-bottom:12px">
+      <textarea id="ai_text" rows="3" style="width:100%" placeholder="Jaise: Ramesh Sharma 98765 43210, Jhalawar me plot chahiye 2 bigha, budget 20-25 lakh, cash hai thoda loan, Diwali ke baad call karna"></textarea>
+      <div class="row" style="gap:8px;margin-top:8px">
+        <button type="button" class="btn ghost" id="aiMicBtn" onclick="aiMic(this)">🎤 Bolo</button>
+        <button type="button" class="btn grow" onclick="aiParse(this)">✨ Form bharo</button>
+      </div>
+      <div class="tiny" id="ai_status" style="margin-top:6px"></div>
+    </div>`:''}
     <div class="field"><label>Name *</label><input id="l_name" value="${esc(L.name||'')}"></div>
     <div class="grid2">
       <div class="field"><label>Mobile *</label><input id="l_mobile" inputmode="tel" value="${esc(L.mobile||'')}"></div>
@@ -1174,7 +1508,9 @@ function openLeadForm(id){
     </div>
     <div class="field"><label>City / Address</label><input id="l_city" value="${esc(L.city||'')}"></div>
     <div class="grid2">
-      <div class="field"><label>Colony</label><input id="l_colony" value="${esc(L.colony||'')}"></div>
+      <div class="field"><label>Colony</label><input id="l_colony" list="colonyDL" value="${esc(L.colony||'')}" autocomplete="off">
+        <datalist id="colonyDL">${uniq(leads.map(x=>x.colony).filter(Boolean)).sort().map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+        <div class="tiny" style="margin-top:3px">Pehle wali list me se chuno — naya tabhi likho jab sach me nayi colony ho.</div></div>
       <div class="field"><label>Preferred plot</label><input id="l_plot" value="${esc(L.plot||'')}"></div>
     </div>
     <div class="grid2">
@@ -1189,6 +1525,37 @@ function openLeadForm(id){
       <div class="execchecks">${execChecks(id?execsOf(L).slice(1):[])}</div></div>
     <div class="field"><label>Status</label><select id="l_status">
       ${STATUSES.map(s=>`<option value="${s.k}" ${L.status===s.k?'selected':''}>${s.l}</option>`).join('')}</select></div>
+
+    <details ${(L.locations&&L.locations.length)||L.family||L.budgetMin||L.cash?'open':''} style="margin:4px 0 10px;border:1px solid var(--line);border-radius:12px;padding:8px 12px">
+      <summary style="cursor:pointer;font-weight:700;font-size:.84rem;color:var(--brand)">➕ Requirement · Finance · Context (optional)</summary>
+      <div style="margin-top:10px">
+        <div class="field"><label>Preferred locations (comma se alag)</label><input id="l_locations" list="colonyDL" value="${esc((L.locations||[]).join(', '))}" placeholder="Jhalawar, Kota" autocomplete="off"></div>
+        <div class="grid2">
+          <div class="field"><label>Property type</label><select id="l_ptype">${['','Plot','House','Commercial','Hospital/Institutional','Agricultural'].map(o=>`<option value="${o}" ${(L.ptype||'')===o?'selected':''}>${o||'—'}</option>`).join('')}</select></div>
+          <div class="field"><label>Plot size</label><input id="l_size" value="${esc(L.size||'')}" placeholder="100x100 / 2 bigha"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Budget min (₹)</label><input type="number" id="l_bmin" value="${L.budgetMin||''}"></div>
+          <div class="field"><label>Budget max (₹)</label><input type="number" id="l_bmax" value="${L.budgetMax||''}"></div>
+        </div>
+        <div class="sec" style="margin:10px 2px 4px">💰 Finance</div>
+        <div class="grid2">
+          <div class="field"><label>Cash available (₹)</label><input type="number" id="l_cash" value="${L.cash||''}"></div>
+          <div class="field"><label>Loan chahiye?</label><select id="l_loan"><option value="">—</option><option value="yes" ${L.loan==='yes'?'selected':''}>Haan</option><option value="no" ${L.loan==='no'?'selected':''}>Nahi</option></select></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Loan amount (₹)</label><input type="number" id="l_loanamt" value="${L.loanAmt||''}"></div>
+          <div class="field"><label>Loan status</label><select id="l_loanstatus">${['','Not started','Applied','Approved','Rejected'].map(o=>`<option value="${o}" ${(L.loanStatus||'')===o?'selected':''}>${o||'—'}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>Token dene ko taiyar?</label><select id="l_token"><option value="">—</option><option value="yes" ${L.token==='yes'?'selected':''}>Haan</option><option value="no" ${L.token==='no'?'selected':''}>Nahi</option></select></div>
+        <div class="sec" style="margin:10px 2px 4px">👪 Context</div>
+        <div class="field"><label>Family / personal context</label><textarea id="l_family" rows="3" placeholder="Bachhe, padhai, shehar, rishtedaar, occupation detail...">${esc(L.family||'')}</textarea></div>
+        <div class="grid2">
+          <div class="field"><label>Referred by</label><input id="l_refby" value="${esc(L.refBy||'')}" placeholder="Shaila bhai ke friend"></div>
+          <div class="field"><label>Contact after date</label><input type="date" id="l_cafter" value="${esc(L.contactAfter||'')}"></div>
+        </div>
+      </div>
+    </details>
     <div class="grid2">
       <div class="field"><label>Call recording</label><input type="file" id="l_rec" accept="audio/*"></div>
       <div class="field"><label>Proof photo</label><input type="file" id="l_photo" accept="image/*"></div>
@@ -1205,7 +1572,7 @@ function openLeadForm(id){
       <button class="btn ghost grow" onclick="this.closest('.modal-bg').remove()">Cancel</button>
       <button class="btn grow" onclick="saveLead('${id||''}')">Save</button>
     </div>
-    ${id?`<button class="btn danger wide" style="margin-top:10px" onclick="this.closest('.modal-bg').remove();delLead('${id}')">🗑 Delete lead</button>`:''}`);
+    ${id&&isAdmin()?`<button class="btn danger wide" style="margin-top:10px" onclick="this.closest('.modal-bg').remove();delLead('${id}')">🗑 Delete lead</button>`:''}`);
 }
 function execChecks(selected){
   return execList().map(n=>`<label class="chk"><input type="checkbox" class="l_extra" value="${esc(n)}" ${selected.includes(n)?'checked':''}>${esc(n)}</label>`).join('');
@@ -1224,16 +1591,23 @@ async function saveLead(id){
   document.querySelectorAll('.modal .btn').forEach(b=>{ b.disabled=true; });   // upload ke dauraan double-submit rokna
   const rec = await uploadFile('l_rec');
   const photo = await uploadFile('l_photo');
+  const bmin=parseInt(val('l_bmin'))||0, bmax=parseInt(val('l_bmax'))||0;
+  if(bmin&&bmax&&bmin>bmax){ alert('Budget min, max se bada nahi ho sakta'); document.querySelectorAll('.modal .btn').forEach(b=>{b.disabled=false;}); return; }
   const data={ name, mobile, occupation:val('l_occ'), city:val('l_city'),
     colony:val('l_colony'), plot:val('l_plot'), source:val('l_source'),
     agent:val('l_agent'), exec:execs[0]||'', execs, status:val('l_status'),
-    createdAt: val('l_date')||today() };
+    createdAt: val('l_date')||today(),
+    locations:(val('l_locations')||'').split(',').map(s=>s.trim()).filter(Boolean),
+    ptype:val('l_ptype'), size:val('l_size'), budgetMin:bmin||'', budgetMax:bmax||'',
+    cash:parseInt(val('l_cash'))||'', loan:val('l_loan'), loanAmt:parseInt(val('l_loanamt'))||'',
+    loanStatus:val('l_loanstatus'), token:val('l_token'),
+    family:val('l_family'), refBy:val('l_refby'), contactAfter:val('l_cafter') };
   let L;
   if(id){
     if(rec) data.rec = rec; if(photo) data.photo = photo;   // edit → lead-level attachment
     L=leads.find(x=>x.id===id); Object.assign(L, data); L.ts=Date.now();
   } else {
-    L={ id:uid(), ...data, ts:Date.now(), need:{}, followUps:[] }; leads.unshift(L);
+    L={ id:uid(), ...data, createdBy:(user&&user.email||''), createdByName:_crmName(), createdAtSys:Date.now(), ts:Date.now(), need:{}, followUps:[] }; leads.unshift(L);
     // pehli baat-cheet ko first follow-up bana do (agar bhari ho)
     const g=i=>document.getElementById(i)?document.getElementById(i).value.trim():'';
     const p=g('l_purpose'), r=g('l_response'), nd=g('l_ndate'), na=g('l_naction');
@@ -1331,11 +1705,36 @@ async function saveFU(id){
 }
 
 // ── actions ──────────────────────────────────────────────────────────────────
+let deletedLeads=[];   // soft-deleted leads (bin)
+function _crmName(){ const e=(user&&user.email||'').toLowerCase(); return NAME_BY_EMAIL[e] || (user&&user.email?user.email.split('@')[0]:''); }
 function delLead(id){
-  if(!confirm('Delete this lead?')) return;
-  leads = leads.filter(x=>x.id!==id);
-  col().doc(id).delete().catch(e=>alert('Delete failed: '+e.message));
+  if(!isAdmin()){ alert('Sirf admin lead delete kar sakta hai.'); return; }
+  if(!confirm('Is lead ko Deleted (bin) me bhejein?\nAdmin baad me wapas la sakta hai.')) return;
+  col().doc(id).set({ deleted:true, deletedBy:(user&&user.email||''), deletedAt:Date.now() },{merge:true})
+    .then(()=>toast('Deleted — bin me hai (wapas la sakte ho)'))
+    .catch(e=>alert('Delete failed: '+e.message));
   tab('list');
+}
+function openDeleted(){
+  if(!isAdmin()){ alert('Sirf admin'); return; }
+  const list = deletedLeads.length ? deletedLeads.map(L=>`<div class="row" style="justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)">
+      <div style="min-width:0"><b>${esc(L.name||'—')}</b><div class="tiny" style="color:var(--muted)">${esc(L.mobile||'')}${L.deletedBy?' · by '+esc(L.deletedBy.split('@')[0]):''}</div></div>
+      <div class="row" style="gap:6px;flex:none"><button class="btn ghost sm" onclick="restoreLead('${esc(L.id)}')">↩ Wapas</button><button class="iconbtn" style="background:#f1f5f9;color:#b91c1c;padding:6px 9px" onclick="hardDelLead('${esc(L.id)}')" title="Pakka delete">✕</button></div></div>`).join('')
+    : '<div class="tiny" style="padding:10px 0">Bin khali hai.</div>';
+  modal(`<h2>🗑 Deleted Leads</h2><div class="msub">Admin wapas la sakta hai</div>
+    <div style="max-height:52vh;overflow:auto">${list}</div>
+    <div class="row" style="margin-top:14px"><button class="btn ghost grow" onclick="this.closest('.modal-bg').remove()">Close</button></div>`);
+}
+function restoreLead(id){
+  col().doc(id).set({ deleted:false, restoredBy:(user&&user.email||''), restoredAt:Date.now() },{merge:true})
+    .then(()=>{ toast('Lead wapas aa gayi ✓'); const m=document.querySelector('.modal-bg'); if(m)m.remove(); })
+    .catch(e=>alert(e.message));
+}
+function hardDelLead(id){
+  if(!isAdmin()) return;
+  if(!confirm('PAKKA delete? Ye hamesha ke liye hat jayegi — wapas nahi aayegi.')) return;
+  col().doc(id).delete().then(()=>{ toast('Permanent delete'); const m=document.querySelector('.modal-bg'); if(m){m.remove();openDeleted();} })
+    .catch(e=>alert(e.message));
 }
 function setStatus(k){ f.status=k; page=1; render(); }
 function clearFilters(){ f={q:'',status:'',colony:'',exec:'',from:'',to:''}; page=1; render(); }
@@ -1388,6 +1787,7 @@ function parseImport(text){
     exec:col('executive','exec'), status:col('status') };
   if(ci.name<0||ci.mobile<0){ alert('CSV needs at least "Name" and "Mobile" columns.\nTip: use an Export file as your template.'); return; }
   const stByLabel=Object.fromEntries(STATUSES.map(s=>[s.l.toLowerCase(),s.k]));
+  Object.assign(stByLabel,{fresh:'fresh',warm:'warm','site visit':'visit',sitevisit:'visit',booked:'booked',nurture:'nurture'}); // purane labels bhi chalein
   const seen=new Set(leads.map(L=>digits(L.mobile)));   // dedupe by mobile
   const batch=db.batch();                               // ponytail: single batch (Firestore limit 500 rows/import)
   let added=0, skipped=0;
@@ -1400,7 +1800,7 @@ function parseImport(text){
     const L={ id:uid(), name, mobile:mob, occupation:g(ci.occupation), city:g(ci.city),
       colony:g(ci.colony), plot:g(ci.plot), source:g(ci.source)||'Other', agent:g(ci.agent),
       exec:g(ci.exec), status:stByLabel[g(ci.status).toLowerCase()]||'fresh',
-      createdAt:today(), need:{}, followUps:[] };
+      createdAt:today(), createdBy:(user&&user.email||''), createdByName:_crmName(), createdAtSys:Date.now(), need:{}, followUps:[] };
     leads.unshift(L); batch.set(col().doc(L.id), L); added++;
   });
   batch.commit().catch(e=>alert('Import save failed: '+e.message));
@@ -1491,8 +1891,6 @@ async function confirmNotif(){
 }
 
 // ── boot ─────────────────────────────────────────────────────────────────────
-let _t;
-function debouncedRender(){ clearTimeout(_t); _t=setTimeout(render,180); }
 // app-icon badge = mere pending leads (naye + due). Assign hote hi count me aa jaata hai.
 function updateBadge(){
   try{
@@ -1520,6 +1918,8 @@ const HUDDLE_ONLY_EMAILS = [];
 // Ye log normal user hain PAR Huddle + Attendance me SABKA dekh sakte hain (reporting ke liye) — office set nahi
 const HA_VIEW_ALL_EMAILS = [];
 const canViewAllHA = () => isAdmin() || !!(user && HA_VIEW_ALL_EMAILS.includes((user.email||'').toLowerCase()));
+const LOA_EDITORS = ['demo@plotcrm.app'];
+const canEditLOA = () => !!(user && LOA_EDITORS.includes((user.email||'').toLowerCase()));
 const isHuddleOnly = () => !!(user && HUDDLE_ONLY_EMAILS.includes((user.email||'').toLowerCase()));
 // login pe standup ka naam apne aap set — member ko manually na chunna pade
 const NAME_BY_EMAIL = { 'demo@plotcrm.app':'Amit' };
@@ -1591,7 +1991,7 @@ function attShareReport(){
       lines.push((a?'✅ ':'❌ ')+nm+(a?' '+a.inTime+(a.late?' (Late)':''):' — Absent')); });
   });
   const dt=fmtDate(att.date);
-  const text='📋 *Attendance — '+dt+'*\n'+present+'/'+total+' present\n\n'+lines.join('\n')+'\n\n🙏 Jinhone attendance nahi lagayi, kripya abhi app me Punch In kar lein.';
+  const text='📋 *Attendance — '+dt+'*\n'+present+'/'+total+' present\n\n'+lines.join('\n')+'\n\n🙏 Jinhone attendance nahi lagayi, kripya abhi app me Punch In kar lein.\n\n📲 Attendance kholein: https://akshardhamassociate.github.io/plot-crm/#att';
   shareReport('Attendance — '+dt, present+'/'+total+' present', rows, text);
 }
 function hudShareReport(){
@@ -1604,7 +2004,7 @@ function hudShareReport(){
   });
   if(missing.length){ rows.push({t:'Pending: '+missing.join(', '),c:'#b91c1c'}); }
   const dt=fmtDate(hud.date);
-  const text='📋 *Daily Huddle — '+dt+'*\n\n'+lines.join('\n')+(missing.length?'\n\n⏳ *Pending standup:* '+missing.join(', ')+'\n🙏 Kripya apna standup bhar dein.':'');
+  const text='📋 *Daily Huddle — '+dt+'*\n\n'+lines.join('\n')+(missing.length?'\n\n⏳ *Pending standup:* '+missing.join(', ')+'\n🙏 Kripya apna standup bhar dein.':'')+'\n\n📲 Huddle kholein: https://akshardhamassociate.github.io/plot-crm/#huddle';
   shareReport('Daily Huddle — '+dt, posted.length+' posted'+(missing.length?' · '+missing.length+' pending':''), rows, text);
 }
 
@@ -1669,15 +2069,8 @@ async function hudSaveStandup(){
   if(!tasks.length && !issues.length && !yesterday.length){ alert('Kuch to bharo — kal ka kaam, aaj ke task ya issue'); return; }
   const id=date+'__'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-');
   db.collection('standups').doc(id).set({ date, name, nameKey:name.toLowerCase(), yesterday, tasks, issues, ts:Date.now() }, {merge:true})
-    .then(()=>{ toast(hud.editing?'Standup updated ✓':'Standup saved ✓'); hud.editing=false; hudLoad(); })
+    .then(()=>{ pushHuddleSheet({date, name, yesterday, tasks, issues}); toast(hud.editing?'Standup updated ✓':'Standup saved ✓'); hud.editing=false; hudLoad(); })
     .catch(e=>alert('Save failed: '+e.message));
-}
-function hudSaveReport(){
-  if(!hud.report) return;
-  const tasks=hud.report.tasks.map(x=>({t:x.t,st:x.st||'',rm:(x.rm||'').trim()}));
-  db.collection('standups').doc(hud.report.id).set({ tasks }, {merge:true})
-    .then(()=>{ toast('Reporting saved ✓'); hudLoad(); })
-    .catch(e=>alert(e.message));
 }
 function hudFeedback(id){
   const el=document.getElementById('fb_'+id); if(!el) return;
@@ -1755,6 +2148,9 @@ function huddleHTML(){
           <input placeholder="Aaj ka task ${i+1}" value="${esc(t.t)}" oninput="hud.draft.tasks[${i}].t=this.value">
           ${d.tasks.length>1?`<button class="iconbtn" style="background:#f1f5f9;color:#b91c1c;padding:7px;flex:none" onclick="hudDelTask(${i})">✕</button>`:''}
         </div>
+        <div class="row" style="gap:6px;margin-top:6px">${stSelect('tasks',i,t.st)}
+          <input placeholder="Remark" value="${esc(t.rm)}" oninput="hud.draft.tasks[${i}].rm=this.value" style="flex:1;font-size:.85rem">
+        </div>
         ${proofRow('tasks',i,t,'tfile')}
       </div>`).join('');
   const issueRows=d.issues.map((x,i)=>`
@@ -1773,7 +2169,7 @@ function huddleHTML(){
       <label>Kal kya kiya tha <span style="text-transform:none;font-weight:600;color:var(--faint)">(auto · status daalo)</span></label>
       ${d.yesterday.length?yestRows:'<div class="tiny" style="margin-bottom:8px">Pichhle standup se apne aap aayega. Nahi to "+ Add" se daalo.</div>'}
       <button class="btn ghost sm" onclick="hudAddYest()">${IC.add} Add</button>
-      <label style="margin-top:16px">Aaj ke Task</label>
+      <label style="margin-top:16px">Aaj ke Task <span style="text-transform:none;font-weight:600;color:var(--faint)">(subah: task likho · shaam: status bharo = Day Report)</span></label>
       ${taskRows}
       <button class="btn ghost sm" onclick="hudAddTask()">${IC.add} Add Task</button>
       <label style="margin-top:16px">Issues / Blockers</label>
@@ -1788,7 +2184,8 @@ function huddleHTML(){
     ${hud.mine.length ? hud.mine.map(s=>hudCard(s,false,true)).join('') : '<div class="empty">Abhi koi standup nahi. Form se pehli entry bharo.</div>'}`;
   const fitems = hud.execFilter ? hud.items.filter(x=>(x.nameKey||'')===hud.execFilter) : hud.items;
   const board=admin ? `
-      <div class="sec">${IC.users} Team Board — ${fmtDate(hud.date)}</div>
+      <div class="sec" style="display:flex;align-items:center;gap:8px">${IC.users} Team Board — ${fmtDate(hud.date)}
+        <button class="btn sm" style="margin-left:auto;background:#6366f1" onclick="openBoard()">📊 Score Board</button></div>
       <div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <button class="btn ghost sm" onclick="hudShiftDay(-1)">${IC.back}</button>
         <input type="date" value="${hud.date}" onchange="hudSetDate(this.value)" style="width:auto">
@@ -1829,6 +2226,163 @@ const LATE_AFTER = '10:20';  // is time (IST) ke baad punch-in = Late
 let att = { date: today(), offices:{}, mineToday:null, mine:[], items:[] };
 const istTime = () => new Date(Date.now()+5.5*3600e3).toISOString().slice(11,16);   // HH:MM IST
 const attId = (date,name) => date+'__'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+
+// ── TEAM SCORE BOARD (Phase 1): Attendance · Day Plan · Day Report ──
+let board = { date: today(), std:[], att:[], award:{} };
+function openBoard(){ route.view='board'; route.id=null; board.date=today(); board.std=[]; board.att=[]; render(); boardLoad(); window.scrollTo(0,0); }
+function boardShiftDay(n){ const dt=new Date(board.date+'T00:00:00Z'); dt.setUTCDate(dt.getUTCDate()+n); board.date=dt.toISOString().slice(0,10); boardLoad(); }
+// hafte ke 6 din (Mon–Sat) — UTC me (stored date keys bhi UTC-based hain)
+function _weekDates(dateStr){ const dt=new Date(dateStr+'T00:00:00Z'); const dow=(dt.getUTCDay()+6)%7;
+  const out=[]; for(let i=0;i<6;i++){ const d=new Date(dt); d.setUTCDate(dt.getUTCDate()-dow+i); out.push(d.toISOString().slice(0,10)); } return out; }
+// ek din ka score: attendance(1) + day plan(1=task bhara) + day report(1=sab task ka status bhara)
+function _dayScore(key,day){
+  const att = board.att.some(a=>(a.nameKey||'')===key && a.date===day && a.inTime) ? 1 : 0;
+  const s = board.std.find(x=>(x.nameKey||'')===key && x.date===day);
+  const tasks = (s && Array.isArray(s.tasks)) ? s.tasks : [];
+  const plan = tasks.length>0 ? 1 : 0;
+  const report = (tasks.length>0 && tasks.every(t=>t.st)) ? 1 : 0;
+  return { att, plan, report, total: att+plan+report };
+}
+function _isLeave(key,day){ return board.att.some(a=>(a.nameKey||'')===key && a.date===day && a.leave && !a.inTime); }
+// weekly: leave din ko baaki (non-leave) dino ka average milta hai → total = avg × 6
+function _weekScore(key){
+  const days=_weekDates(board.date); let sum=0, worked=0;
+  days.forEach(d=>{ if(_isLeave(key,d)) return; sum+=_dayScore(key,d).total; worked++; });
+  if(worked===0) return 0;
+  return Math.round((sum/worked)*6);
+}
+async function boardLoad(){
+  const days=_weekDates(board.date);
+  try{
+    const [ss,as,aw]=await Promise.all([
+      db.collection('standups').where('date','in',days).get(),
+      db.collection('attendance').where('date','in',days).get(),
+      db.collection('awards').doc(days[0]).get()
+    ]);
+    board.std=ss.docs.map(d=>d.data());
+    board.att=as.docs.map(d=>d.data());
+    board.award=aw.exists?(aw.data()||{}):{};
+  }catch(e){ alert('Board load error: '+e.message); }
+  if(route.view==='board') render();
+}
+// 🌟 Best Value Lever — admin is hafte ka winner chune (values pe)
+function boardSetValueLever(){
+  modal(`<h2>🌟 Best Value Lever</h2><div class="msub">${fmtDate(_weekDates(board.date)[0])} wale hafte — kisne values best dikhayi?</div>
+    <div class="field">${execSelect('bvl_name', board.award&&board.award.valueLever||'')}</div>
+    <div class="field"><label>Reason (optional)</label><input id="bvl_why" value="${esc(board.award&&board.award.valueLeverWhy||'')}" placeholder="kyun"></div>
+    <div class="row" style="gap:11px"><button class="btn ghost grow" onclick="this.closest('.modal-bg').remove()">Cancel</button>
+    <button class="btn grow" onclick="boardSaveValueLever()">Save</button></div>`);
+}
+// admin: naam pe tap → us din leave toggle
+async function boardToggleLeave(name){
+  if(!canViewAllHA()) return;
+  const key=name.toLowerCase(), date=board.date;
+  const ex=board.att.find(a=>(a.nameKey||'')===key && a.date===date);
+  if(ex && ex.inTime){ alert(name+' ne is din attendance lagayi hai — leave nahi lag sakta.'); return; }
+  const id=attId(date,name);
+  try{
+    if(ex && ex.leave){ if(!confirm(name+' ka '+fmtDate(date)+' ka leave HATAYEN?')) return;
+      await db.collection('attendance').doc(id).delete(); toast('Leave hataya'); }
+    else{ if(!confirm(name+' ko '+fmtDate(date)+' ka LEAVE mark karein?\n(us din ka score = baaki dino ka average)')) return;
+      await db.collection('attendance').doc(id).set({ date, name, nameKey:key, leave:true, by:(user&&user.email||''), ts:Date.now() },{merge:true}); toast('Leave mark ✓'); }
+    boardLoad();
+  }catch(e){ alert('Nahi hua: '+e.message); }
+}
+function boardSaveValueLever(){
+  const n=val('bvl_name'); if(!n){ alert('Naam chuno'); return; }
+  const weekMon=_weekDates(board.date)[0];
+  db.collection('awards').doc(weekMon).set({ valueLever:n, valueLeverWhy:(val('bvl_why')||'').trim(), by:(user&&user.email||''), ts:Date.now() },{merge:true})
+    .then(()=>{ const m=document.querySelector('.modal-bg'); if(m)m.remove(); toast('Saved ✓'); boardLoad(); })
+    .catch(e=>alert('Save nahi hui (awards access?): '+e.message));
+}
+const BOARD_PLAN_BY=11, BOARD_REPORT_BY=18;   // Att+Plan 11 baje tak, Report 6 baje tak
+// WhatsApp pe board (attendance + huddle ek saath) — image + text
+function boardShareReport(){
+  const days=_weekDates(board.date);
+  const nowH=new Date(Date.now()+5.5*3600e3).getUTCHours();
+  const isToday=board.date===today(), isPast=board.date<today();
+  const due = isPast?{att:1,plan:1,report:1}:isToday?{att:nowH>=BOARD_PLAN_BY?1:0,plan:nowH>=BOARD_PLAN_BY?1:0,report:nowH>=BOARD_REPORT_BY?1:0}:{att:0,plan:0,report:0};
+  const mk=(done,isDue)=>done?'✅':(isDue?'❌':'⏳');
+  const rows=EXECS.map(n=>{ const key=n.toLowerCase(); return {n,lv:_isLeave(key,board.date),d:_dayScore(key,board.date),wk:_weekScore(key)}; }).sort((a,b)=>b.wk-a.wk||b.d.total-a.d.total);
+  const dt=fmtDate(board.date);
+  const star=rows[0]&&rows[0].wk>0?rows[0]:null;
+  const bvl=board.award&&board.award.valueLever;
+  const cell=r=>r.lv?'🌴 Leave        ':(mk(r.d.att,due.att)+mk(r.d.plan,due.plan)+mk(r.d.report,due.report)+'  '+r.d.total+'/3');
+  const crows=[{t:'Naam            Att Plan Rep   Aaj  Week',b:true,c:'#4f46e5'}];
+  rows.forEach((r,i)=>crows.push({t:(i+1)+'. '+r.n+'  '+cell(r)+'  '+r.wk+'/18'}));
+  if(star) crows.push({t:'🏆 Star: '+star.n+' ('+star.wk+'/18)',b:true,c:'#b45309'});
+  if(bvl) crows.push({t:'🌟 Value Lever: '+bvl,b:true,c:'#1e40af'});
+  const lines=rows.map((r,i)=>(i+1)+'. '+r.n+' — '+(r.lv?'🌴 Leave':mk(r.d.att,due.att)+mk(r.d.plan,due.plan)+mk(r.d.report,due.report)+'  ('+r.d.total+'/3')+(r.lv?'':')')+' · wk '+r.wk+'/18');
+  let text='📊 *Team Board — '+dt+'*\n(Attendance · Day Plan · Day Report)\n\n'+lines.join('\n');
+  if(star) text+='\n\n🏆 *Star of the Week:* '+star.n+' ('+star.wk+'/18)';
+  if(bvl) text+='\n🌟 *Best Value Lever:* '+bvl+(board.award.valueLeverWhy?' — '+board.award.valueLeverWhy:'');
+  text+='\n\n✅ hua · ❌ nahi · ⏳ abhi due nahi\n🙏 Jinke ❌ hain kripya aaj hi pura kar lein.\n\n📲 Board kholein: https://akshardhamassociate.github.io/plot-crm/#board';
+  shareReport('Team Board — '+dt, fmtDate(days[0])+' – '+fmtDate(days[5]), crows, text);
+}
+function boardHTML(){
+  if(!canViewAllHA()) return `<div class="main-inner"><div class="empty">Ye board sirf admin ke liye hai.</div></div>`;
+  const days=_weekDates(board.date);
+  // deadline se pehle grey (abhi due nahi), baad me red. Aaj ke liye time-aware; purane din sab due; future kuch bhi due nahi.
+  const nowH=new Date(Date.now()+5.5*3600e3).getUTCHours();
+  const isToday=board.date===today(), isPast=board.date<today();
+  const due = isPast ? {att:1,plan:1,report:1}
+    : isToday ? {att:nowH>=BOARD_PLAN_BY?1:0, plan:nowH>=BOARD_PLAN_BY?1:0, report:nowH>=BOARD_REPORT_BY?1:0}
+    : {att:0,plan:0,report:0};
+  const dot=(done,isDue)=>`<span style="font-size:1.05rem;color:${done?'#16a34a':(isDue?'#dc2626':'#cbd5e1')}">●</span>`;
+  const rows=EXECS.map(n=>{ const key=n.toLowerCase(); return { n, lv:_isLeave(key,board.date), d:_dayScore(key,board.date), wk:_weekScore(key) }; })
+    .sort((a,b)=> b.wk-a.wk || b.d.total-a.d.total);
+  const body=rows.map((r,i)=>`
+    <tr style="border-top:1px solid var(--line)">
+      <td style="padding:9px 6px;font-weight:600;white-space:nowrap;cursor:pointer" onclick="boardToggleLeave('${esc(r.n)}')" title="Leave mark/hatane ke liye tap">${i+1}. ${esc(r.n)}${r.lv?' 🌴':''}</td>
+      ${r.lv
+        ? `<td colspan="4" style="text-align:center;color:#0891b2;font-weight:700">🌴 On Leave</td>`
+        : `<td style="text-align:center">${dot(r.d.att,due.att)}</td>
+      <td style="text-align:center">${dot(r.d.plan,due.plan)}</td>
+      <td style="text-align:center">${dot(r.d.report,due.report)}</td>
+      <td style="text-align:center;font-weight:800">${r.d.total}/3</td>`}
+      <td style="text-align:center;font-weight:800;color:var(--brand)">${r.wk}/18</td>
+    </tr>`).join('');
+  const star=rows[0]&&rows[0].wk>0?rows[0]:null;
+  const bvl=board.award&&board.award.valueLever;
+  const awardsHTML=`<div class="row" style="gap:10px;margin:12px 0;flex-wrap:wrap">
+      <div class="card" style="flex:1;min-width:150px;padding:12px;background:linear-gradient(135deg,#fef3c7,#fcd34d);border:none">
+        <div class="tiny" style="font-weight:800;color:#92400e">🏆 STAR OF THE WEEK</div>
+        <div style="font-weight:800;font-size:1.05rem;margin-top:3px">${star?esc(star.n):'—'}</div>
+        <div class="tiny" style="color:#92400e">${star?star.wk+'/18 · top performer':'abhi data nahi'}</div>
+      </div>
+      <div class="card" style="flex:1;min-width:150px;padding:12px;background:linear-gradient(135deg,#dbeafe,#93c5fd);border:none">
+        <div style="display:flex;align-items:center;gap:6px"><span class="tiny" style="font-weight:800;color:#1e40af">🌟 BEST VALUE LEVER</span>
+          <button class="btn ghost sm" style="margin-left:auto;padding:3px 9px;font-size:.68rem" onclick="boardSetValueLever()">${bvl?'Change':'Set'}</button></div>
+        <div style="font-weight:800;font-size:1.05rem;margin-top:3px">${bvl?esc(bvl):'—'}</div>
+        <div class="tiny" style="color:#1e40af">${board.award&&board.award.valueLeverWhy?esc(board.award.valueLeverWhy):(bvl?'values champion':'admin chune')}</div>
+      </div>
+    </div>`;
+  return `<div class="main-inner">
+    <div class="row" style="align-items:center;gap:8px">
+      <button class="btn ghost sm" onclick="tab('huddle')">← Back</button>
+      <h2 class="page-title" style="margin:0">📊 Team Score Board</h2>
+      <button class="btn sm" style="margin-left:auto;background:#22c55e" onclick="boardShareReport()">${IC.wa||'📤'} Share</button>
+    </div>
+    ${awardsHTML}
+    <div class="row" style="gap:8px;align-items:center;margin:12px 0 4px">
+      <button class="btn ghost sm" onclick="boardShiftDay(-1)">‹</button>
+      <b style="flex:1;text-align:center">${fmtDate(board.date)}</b>
+      <button class="btn ghost sm" onclick="boardShiftDay(1)">›</button>
+    </div>
+    <div class="tiny" style="margin:0 2px 10px">Hafta: ${fmtDate(days[0])} – ${fmtDate(days[5])} · 🟢 hua · 🔴 nahi (due nikal gaya) · ⚪ abhi due nahi · Att+Plan 11 baje tak, Report 6 baje tak · roz 3, hafta 18</div>
+    <div class="card" style="padding:4px 8px;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+        <thead><tr style="color:var(--muted);font-size:.7rem;text-transform:uppercase">
+          <th style="text-align:left;padding:8px 6px">Naam</th>
+          <th>Att</th><th>Plan</th><th>Report</th><th>Aaj</th><th>Week</th>
+        </tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>
+    <div class="tiny" style="margin:12px 2px;color:var(--muted)">Att = attendance lagi · Plan = aaj ke task bhare · Report = sab task ka status bhara · Naam pe tap karke 🌴 leave mark/hata sakte ho (leave din ka score = baaki dino ka average)</div>
+    <div class="tiny" style="margin:8px 2px;color:var(--muted)">⚠ Abhi score sirf discipline (Att+Plan+Report = 30% hissa). KRA/KPI tasks (70%) task-system ban-ne ke baad judega.</div>
+  </div>`;
+}
 function officeOf(name){ const k=(name||'').toLowerCase();
   for(const oid of Object.keys(OFFICE_STAFF)) if(OFFICE_STAFF[oid].some(n=>n.toLowerCase()===k)) return oid;
   return null; }
@@ -1962,7 +2516,8 @@ function attView(){
       ${admin?`<div class="sec">📍 Office Locations <span style="color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0">(ek baar set — sir only)</span></div>
       <div class="tiny" style="margin:-4px 2px 10px">Har office me jaake ek baar "Set location" dabao. Uske baad punch-in sirf wahin ~${OFFICE_RADIUS}m ke andar hoga.</div>
       ${offRows}`:''}
-      <div class="sec" style="margin-top:24px">${IC.users} Attendance Board</div>
+      <div class="sec" style="margin-top:24px;display:flex;align-items:center;gap:8px">${IC.users} Attendance Board
+        <button class="btn sm" style="margin-left:auto;background:#6366f1" onclick="openBoard()">📊 Score Board</button></div>
       <div class="row" style="gap:8px;margin-bottom:6px;flex-wrap:wrap">
         <button class="btn ghost sm" onclick="attShiftDay(-1)">${IC.back}</button>
         <input type="date" value="${att.date}" onchange="attSetDate(this.value)" style="width:auto">
@@ -1982,31 +2537,237 @@ function attView(){
 }
 
 // mobile bottom nav — top tabs neeche fixed bar me
-function bottomNavHTML(){
-  if(!user) return '';
-  const it=(v,icon,label,onclick,badge)=>`<button class="bn-item ${route.view===v?'on':''}" onclick="${onclick}">${badge?`<span class="bdot">${badge}</span>`:''}${icon}<span>${label}</span></button>`;
-  if(isHuddleOnly()) return `<nav class="bottomnav">
-    ${it('huddle',IC.inbox,'Huddle','openHuddle()','')}
-    ${it('att',IC.check,'Attend.','openAtt()','')}
-  </nav>`;
+// ════ APP ENGAGING — Social Wall · Quote/Story of Day · Birthdays · Usage ════
+let wall = { posts:[], cfg:null, todayOpens:0 };
+function _dayIdx(){ return Math.floor((Date.now()+5.5*3600e3)/864e5); }   // IST din number (rotation ke liye)
+function quoteOfDay(){ const q=(wall.cfg&&wall.cfg.quotes)||[]; return q.length?q[_dayIdx()%q.length]:''; }
+function storyOfDay(){ const s=(wall.cfg&&wall.cfg.stories)||[]; return s.length?s[_dayIdx()%s.length]:''; }
+function todaysBirthdays(){ const b=(wall.cfg&&wall.cfg.birthdays)||[]; const md=new Date(Date.now()+5.5*3600e3).toISOString().slice(5,10); return b.filter(x=>(x.date||'').slice(-5)===md); }
+function _ago(ts){ if(!ts) return ''; const s=Math.floor((Date.now()-ts)/1000);
+  if(s<60) return 'abhi'; if(s<3600) return Math.floor(s/60)+'m'; if(s<86400) return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d'; }
+async function logAppOpen(){
+  if(!user||!user.email) return;
+  try{ await db.collection('applogs').doc(user.email+'__'+today()).set({ email:user.email, date:today(),
+    count:firebase.firestore.FieldValue.increment(1), ts:Date.now() },{merge:true}); }catch(_){}
+}
+function openWall(){ route.view='wall'; route.id=null; render(); engageLoad(); window.scrollTo(0,0); }
+async function engageLoad(){
+  try{
+    const [cf,ws]=await Promise.all([
+      db.collection('config').doc('engage').get(),
+      db.collection('wall').orderBy('ts','desc').limit(40).get()
+    ]);
+    wall.cfg=cf.exists?(cf.data()||{}):{quotes:[],stories:[],birthdays:[]};
+    wall.posts=ws.docs.map(d=>({id:d.id,...d.data()}));
+    if(canViewAllHA()){ const u=await db.collection('applogs').where('date','==',today()).get();
+      wall.todayOpens=u.docs.reduce((s,d)=>s+((d.data().count)||0),0); }
+  }catch(_){}
+  if(route.view==='wall'||route.view==='home') render();
+}
+async function wallPost(btn){
+  const text=(val('wall_text')||'').trim();
+  const fi=document.getElementById('wall_img'); const file=fi&&fi.files&&fi.files[0];
+  if(!text && !file){ alert('Kuch likho ya photo daalo'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='Posting…'; }
+  let img=''; if(file){ img=await uploadFile('wall_img')||''; }
+  try{
+    await db.collection('wall').add({ text, img, by:(user&&user.email||''),
+      byName:hudMyName()||((user&&user.email||'').split('@')[0]), ts:Date.now() });
+    toast('Posted ✓'); engageLoad();
+  }catch(e){ alert('Post nahi hua: '+e.message); if(btn){ btn.disabled=false; btn.textContent='Post'; } }
+}
+async function wallDelete(id){ if(!confirm('Post delete karein?')) return;
+  try{ await db.collection('wall').doc(id).delete(); toast('Deleted'); engageLoad(); }catch(e){ alert(e.message); } }
+async function wallReact(id, emoji){
+  if(!user) return;
+  const key=(user.email||'').replace(/[^a-z0-9]/gi,'_');
+  const post=wall.posts.find(p=>p.id===id); if(!post) return;
+  const reacts=Object.assign({}, post.reacts||{});
+  if(reacts[key]===emoji) delete reacts[key]; else reacts[key]=emoji;
+  post.reacts=reacts; render();                         // optimistic
+  try{ await db.collection('wall').doc(id).update({ reacts }); }catch(e){ engageLoad(); }
+}
+async function wallComment(id){
+  const el=document.getElementById('wc_'+id); const txt=((el&&el.value)||'').trim(); if(!txt) return;
+  const c={ by:(user&&user.email||''), byName:hudMyName()||((user&&user.email||'').split('@')[0]), text:txt, ts:Date.now() };
+  const post=wall.posts.find(p=>p.id===id); if(post) post.comments=[...(post.comments||[]), c];
+  render();
+  try{ await db.collection('wall').doc(id).update({ comments: firebase.firestore.FieldValue.arrayUnion(c) }); }catch(e){ engageLoad(); }
+}
+function engageManage(){
+  const c=wall.cfg||{};
+  const quotes=(c.quotes||[]).join('\n');
+  const stories=(c.stories||[]).join('\n---\n');
+  const bn=(c.birthdays||[]).length;
+  modal(`<h2>⚙ Wall Manage</h2>
+    <div class="field"><label>Quotes (ek line = ek quote · roz bari-bari)</label><textarea id="em_q" rows="4" placeholder="Mehnat ka koi vikalp nahi.">${esc(quotes)}</textarea></div>
+    <div class="field"><label>Stories (--- se alag karo)</label><textarea id="em_s" rows="5" placeholder="Kaala gubbara...\n---\nDoosri kahani...">${esc(stories)}</textarea></div>
+    <button class="btn ghost" style="width:100%" onclick="openBirthdays()">🎂 Birthdays / Anniversaries manage${bn?' ('+bn+')':''}</button>
+    <div class="row" style="gap:11px;margin-top:14px"><button class="btn ghost grow" onclick="this.closest('.modal-bg').remove()">Cancel</button>
+    <button class="btn grow" onclick="engageSave()">Save quotes/stories</button></div>`);
+}
+function engageSave(){
+  const quotes=(val('em_q')||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const stories=(val('em_s')||'').split(/\n-{2,}\n/).map(s=>s.trim()).filter(Boolean);
+  db.collection('config').doc('engage').set({ quotes, stories },{merge:true})
+    .then(()=>{ const m=document.querySelector('.modal-bg'); if(m)m.remove(); toast('Saved ✓'); engageLoad(); })
+    .catch(e=>alert('Save nahi hui (config access?): '+e.message));
+}
+function wallHTML(){
+  const admin=canViewAllHA();
+  const bdays=todaysBirthdays(), q=quoteOfDay(), st=storyOfDay();
+  const strip=`
+    ${bdays.length?`<div class="card" style="padding:12px;background:linear-gradient(135deg,#fde68a,#fca5a5);border:none;margin-bottom:10px">
+      <div style="font-weight:800">🎉 Aaj: ${bdays.map(b=>esc(b.name)+(b.type==='anniv'?' 💍':' 🎂')).join(' · ')}</div>
+      <div class="tiny">Team ko wish karein!</div></div>`:''}
+    ${q?`<div class="card" style="padding:12px;border-left:3px solid #6366f1;margin-bottom:10px"><div class="tiny" style="font-weight:800;color:#6366f1">💬 QUOTE OF THE DAY</div><div style="margin-top:4px">${esc(q)}</div></div>`:''}
+    ${st?`<div class="card" style="padding:12px;border-left:3px solid #10b981;margin-bottom:10px"><div class="tiny" style="font-weight:800;color:#10b981">📖 STORY OF THE DAY</div><div style="margin-top:4px;white-space:pre-wrap">${esc(st)}</div></div>`:''}`;
+  const meNm=hudMyName()||((user&&user.email||'?').split('@')[0]);
+  const av=(nm,sz)=>`<div style="width:${sz}px;height:${sz}px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:${Math.round(sz*0.42)}px;background:${avatarColor(nm||'?')}">${esc((nm||'?')[0].toUpperCase())}</div>`;
+  const composer=`<div class="card" style="padding:12px;margin-bottom:14px">
+      <div class="row" style="gap:10px;align-items:flex-start">${av(meNm,38)}
+        <textarea id="wall_text" rows="2" placeholder="Kuch share karo team ke saath…" style="flex:1;width:auto"></textarea></div>
+      <div class="row" style="gap:8px;align-items:center;margin-top:8px">
+        <input id="wall_img" type="file" accept="image/*" style="flex:1;font-size:.72rem">
+        <button class="btn sm" style="flex:none" onclick="wallPost(this)">${IC.add} Post</button></div>
+    </div>`;
+  const myKey=(user&&user.email||'').replace(/[^a-z0-9]/gi,'_');
+  const reactBtns=p=>{ const rc={}; Object.values(p.reacts||{}).forEach(e=>rc[e]=(rc[e]||0)+1); const mine=(p.reacts||{})[myKey];
+    return ['❤️','👍','🎉'].map(e=>`<button onclick="wallReact('${esc(p.id)}','${e}')" style="border:1px solid ${mine===e?'var(--brand)':'var(--line)'};background:${mine===e?'#eef2ff':'#fff'};border-radius:20px;padding:3px 10px;font-size:.82rem;cursor:pointer">${e}${rc[e]?' '+rc[e]:''}</button>`).join(' '); };
+  const commentsBox=p=>{ const cs=p.comments||[];
+    return `<div style="margin-top:8px;border-top:1px solid var(--line);padding-top:8px">
+      ${cs.map(c=>`<div style="font-size:.84rem;margin-bottom:4px"><b>${esc(c.byName||c.by||'?')}</b> ${esc(c.text)}</div>`).join('')}
+      <div class="row" style="gap:6px;margin-top:4px"><input id="wc_${esc(p.id)}" placeholder="Comment…" style="flex:1;font-size:.82rem"><button class="btn ghost sm" onclick="wallComment('${esc(p.id)}')">Send</button></div>
+    </div>`; };
+  const feed=wall.posts.length? wall.posts.map(p=>`
+      <div class="card" style="padding:12px;margin-bottom:10px">
+        <div class="row" style="gap:10px;align-items:center">${av(p.byName||p.by,34)}
+          <div class="grow" style="min-width:0"><b>${esc(p.byName||p.by||'?')}</b><div class="tiny" style="color:var(--muted)">${_ago(p.ts)}</div></div>
+          ${(admin||(user&&p.by===user.email))?`<a href="#" onclick="wallDelete('${esc(p.id)}');return false" class="tiny" style="color:#dc2626;flex:none">del</a>`:''}</div>
+        ${p.text?`<div style="margin-top:8px;white-space:pre-wrap">${esc(p.text)}</div>`:''}
+        ${p.img?`<a href="${esc(p.img)}" target="_blank"><img src="${esc(p.img)}" loading="lazy" style="max-width:100%;border-radius:10px;margin-top:8px"></a>`:''}
+        <div class="row" style="gap:6px;margin-top:10px;flex-wrap:wrap">${reactBtns(p)}</div>
+        ${commentsBox(p)}
+      </div>`).join('') : '<div class="empty">Abhi koi post nahi. Pehla post karo! 🎉</div>';
+  return `<div class="main-inner">
+    <div class="row" style="align-items:center;gap:8px">
+      <h2 class="page-title" style="margin:0">📣 Social Wall</h2>
+      ${admin?`<button class="btn ghost sm" style="margin-left:auto" onclick="engageManage()">⚙ Manage</button>`:''}
+    </div>
+    ${admin&&wall.todayOpens?`<div class="tiny" style="margin:6px 2px;color:var(--muted)">📈 Aaj app ${wall.todayOpens} baar khuli</div>`:''}
+    <div style="margin-top:12px">${strip}${composer}${feed}</div>
+  </div>`;
+}
+// ════ HOME DASHBOARD ════
+function openHome(){ route.view='home'; route.id=null; render(); if(!wall.cfg) engageLoad(); window.scrollTo(0,0); }
+function homeHTML(){
+  const ho=isHuddleOnly();
+  const nm=((hudMyName()||((user&&user.email||'').split('@')[0])||'').split(' ')[0]);
+  const h=new Date(Date.now()+5.5*3600e3).getUTCHours();
+  const greet=h<12?'Good morning':(h<17?'Good afternoon':'Good evening');
   const dueToday=leads.filter(L=>dueDate(L)===today()).length;
   const pending=leads.filter(isOverdue).length+leads.filter(isNew).length;
+  const bdays=todaysBirthdays(), q=quoteOfDay(), st=storyOfDay();
+  const metric=(n,t,onclick)=>`<div onclick="${onclick}" style="flex:1;border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;cursor:pointer;background:#fff"><div style="font-size:1.7rem;font-weight:800;line-height:1">${n}</div><div class="tiny" style="margin-top:3px">${t}</div></div>`;
+  const qa=(icon,label,onclick)=>`<button onclick="${onclick}" style="flex:1;min-width:84px;display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 6px;border:1px solid var(--line);border-radius:14px;background:#fff;cursor:pointer"><span style="font-size:1.5rem;line-height:1">${icon}</span><span style="font-size:.74rem;font-weight:700;color:var(--ink)">${label}</span></button>`;
+  const avH=(nm,sz)=>`<div style="width:${sz}px;height:${sz}px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:${Math.round(sz*0.42)}px;background:${avatarColor(nm||'?')}">${esc((nm||'?')[0].toUpperCase())}</div>`;
+  const peek=(wall.posts||[]).slice(0,2);
+  return `<div class="main-inner">
+    <h2 class="page-title" style="margin-bottom:2px">${greet}${nm?', '+esc(nm):''} 👋</h2>
+    <div class="page-sub">${fmtDate(today())}</div>
+    ${bdays.length?`<div class="card" style="padding:12px;background:linear-gradient(135deg,#fde68a,#fca5a5);border:none;margin-top:12px"><b>🎉 Aaj: ${bdays.map(b=>esc(b.name)+(b.type==='anniv'?' 💍':' 🎂')).join(' · ')}</b><div class="tiny">Team ko wish karein!</div></div>`:''}
+    ${!ho?`<div class="row" style="gap:10px;margin-top:14px">${metric(dueToday,'Aaj due',"tab('today')")}${metric(pending,'Alerts',"tab('reminders')")}</div>`:''}
+    ${(!ho&&isAdmin())?`<div class="card" style="padding:14px;margin-top:12px;cursor:pointer;background:linear-gradient(135deg,#e0e7ff,#bfdbfe);border:none" onclick="openFunnel()"><div class="tiny" style="font-weight:800;color:#4338ca">📈 FUNNEL VALUE</div><div style="font-size:1.5rem;font-weight:800;margin-top:2px">${inr(_funnelTotal(''))}</div><div class="tiny" style="color:#4338ca">tap → full dashboard</div></div>`:''}
+    <div class="sec" style="margin-top:18px">Quick actions</div>
+    <div class="row" style="gap:10px;flex-wrap:wrap">
+      ${qa('✅','Punch In','openAtt()')}
+      ${qa('📝','Standup','openHuddle()')}
+      ${!ho?qa('➕','Add Lead','openLeadForm()'):''}
+      ${qa('📣','Wall','openWall()')}
+    </div>
+    ${q?`<div class="card" style="padding:12px;border-left:3px solid #6366f1;margin-top:18px"><div class="tiny" style="font-weight:800;color:#6366f1">💬 QUOTE OF THE DAY</div><div style="margin-top:4px">${esc(q)}</div></div>`:''}
+    ${st?`<div class="card" style="padding:12px;border-left:3px solid #10b981;margin-top:12px"><div class="tiny" style="font-weight:800;color:#10b981">📖 STORY OF THE DAY</div><div style="margin-top:4px;white-space:pre-wrap">${esc(st)}</div></div>`:''}
+    <div class="sec" style="margin-top:18px"><span class="grow">📣 Wall</span><button class="btn ghost sm" onclick="openWall()">Sab dekho</button></div>
+    ${peek.length? peek.map(p=>`<div class="card" style="padding:12px;margin-bottom:10px" onclick="openWall()">
+        <div class="row" style="gap:10px;align-items:center">${avH(p.byName||p.by,30)}<div class="grow" style="min-width:0"><b>${esc(p.byName||p.by||'?')}</b><div class="tiny" style="color:var(--muted)">${_ago(p.ts)}</div></div></div>
+        ${p.text?`<div style="margin-top:6px;white-space:pre-wrap">${esc(p.text.length>140?p.text.slice(0,140)+'…':p.text)}</div>`:''}
+        ${p.img?`<img src="${esc(p.img)}" loading="lazy" style="max-width:100%;border-radius:10px;margin-top:8px">`:''}
+      </div>`).join('') : `<div class="card" style="padding:14px;text-align:center"><div class="tiny" style="color:var(--muted)">Abhi koi post nahi — <a href="#" onclick="openWall();return false" style="color:var(--brand);font-weight:700">pehla post karo</a> 🎉</div></div>`}
+  </div>`;
+}
+// ════ TEAM HUB ════
+function openTeam(){ route.view='team'; route.id=null; render(); window.scrollTo(0,0); }
+function teamHTML(){
+  const admin=canViewAllHA();
+  const card=(icon,label,desc,onclick)=>`<button onclick="${onclick}" style="width:100%;display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--line);border-radius:16px;background:#fff;cursor:pointer;margin-bottom:12px;text-align:left"><span style="font-size:1.8rem;line-height:1">${icon}</span><span style="flex:1;min-width:0"><span style="display:block;font-weight:800;font-size:1rem">${label}</span><span class="tiny" style="color:var(--muted)">${desc}</span></span><span style="color:var(--muted);font-size:1.3rem">›</span></button>`;
+  return `<div class="main-inner">
+    <h2 class="page-title">🤝 Team</h2>
+    <div class="page-sub">Huddle, attendance aur reporting</div>
+    <div style="margin-top:16px">
+      ${card('📝','Daily Huddle','Kal/aaj ke task + issues','openHuddle()')}
+      ${card('✅','Attendance','Punch in/out + board','openAtt()')}
+      ${admin?card('📊','Score Board','Att/Plan/Report + weekly score','openBoard()'):''}
+    </div>
+  </div>`;
+}
+// ════ Birthday manager (per-user add) ════
+let _bd=[];
+function _mdLabel(md){ const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const p=(md||'').split('-'); return p.length===2?(parseInt(p[1],10)+' '+(mo[parseInt(p[0],10)-1]||'')):md; }
+function openBirthdays(){ _bd=(((wall.cfg&&wall.cfg.birthdays)||[]).map(b=>({name:b.name,date:b.date,type:b.type}))); _bdRender(); }
+function _bdRender(){
+  const ex=document.querySelector('.modal-bg'); if(ex) ex.remove();
+  const list=_bd.length? _bd.map((b,i)=>`<div class="row" style="justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)">
+      <span>${b.type==='anniv'?'💍':'🎂'} <b>${esc(b.name)}</b> · ${_mdLabel(b.date)}</span>
+      <button class="iconbtn" style="background:#f1f5f9;color:#b91c1c;padding:5px 9px" onclick="_bdDel(${i})">✕</button></div>`).join('') : '<div class="tiny" style="padding:6px 0">Abhi koi nahi — neeche se add karo.</div>';
+  modal(`<h2>🎂 Birthdays / Anniversaries</h2><div class="msub">Har user ka alag add karo</div>
+    <div style="max-height:38vh;overflow:auto;margin-bottom:12px">${list}</div>
+    <div class="field">${execSelect('bd_name','')}</div>
+    <div class="row" style="gap:8px">
+      <input id="bd_date" type="date" style="flex:1">
+      <select id="bd_type" style="flex:none;width:auto"><option value="birthday">🎂 Birthday</option><option value="anniv">💍 Anniversary</option></select>
+    </div>
+    <button class="btn ghost sm" style="margin-top:8px" onclick="_bdAdd()">${IC.add} Add</button>
+    <div class="row" style="gap:11px;margin-top:16px"><button class="btn ghost grow" onclick="this.closest('.modal-bg').remove()">Close</button>
+    <button class="btn grow" onclick="_bdSave()">Save all</button></div>`);
+}
+function _bdAdd(){ const n=val('bd_name'), d=val('bd_date'), t=val('bd_type');
+  if(!n||!d){ alert('Naam aur date dono chahiye'); return; }
+  _bd.push({ name:n, date:d.slice(5), type:t }); _bdRender(); }
+function _bdDel(i){ _bd.splice(i,1); _bdRender(); }
+function _bdSave(){ db.collection('config').doc('engage').set({ birthdays:_bd },{merge:true})
+  .then(()=>{ const m=document.querySelector('.modal-bg'); if(m)m.remove(); toast('Saved ✓'); engageLoad(); })
+  .catch(e=>alert('Save nahi hui (config access?): '+e.message)); }
+function bottomNavHTML(){
+  if(!user) return '';
+  // active = kaunse views us tab ke andar aate hain (groups)
+  const nav=(views,icon,label,onclick,badge)=>`<button class="bn-item ${views.includes(route.view)?'on':''}" onclick="${onclick}">${badge?`<span class="bdot">${badge}</span>`:''}${icon}<span>${label}</span></button>`;
+  if(isHuddleOnly()) return `<nav class="bottomnav">
+    ${nav(['home'],IC.home,'Home','openHome()','')}
+    ${nav(['huddle','team'],IC.inbox,'Huddle','openHuddle()','')}
+    ${nav(['att','board'],IC.check,'Attend.','openAtt()','')}
+    ${nav(['wall'],IC.wall,'Wall','openWall()','')}
+    <button class="bn-item" onclick="openMore()">${IC.menu}<span>More</span></button>
+  </nav>`;
+  const pending=leads.filter(isOverdue).length+leads.filter(isNew).length;
   return `<nav class="bottomnav">
-    ${it('today',IC.cal,'Today',"tab('today')",dueToday||'')}
-    ${it('reminders',IC.bell,'Alerts',"tab('reminders')",pending||'')}
-    ${it('list',IC.users,'Leads',"tab('list')",'')}
-    ${it('kanban',IC.board,'Board',"tab('kanban')",'')}
-    ${it('huddle',IC.inbox,'Huddle','openHuddle()','')}
-    ${it('att',IC.check,'Attend.','openAtt()','')}
-    <button class="bn-item" onclick="toast('Demo mode: Call Log needs a phone')">${IC.phone}<span>Call Log</span></button>
+    ${nav(['home','today'],IC.home,'Home','openHome()','')}
+    ${nav(['list','kanban','reminders','detail'],IC.users,'Leads',"tab('list')",pending||'')}
+    ${nav(['team','huddle','att','board'],IC.team,'Team','openTeam()','')}
+    ${nav(['wall'],IC.wall,'Wall','openWall()','')}
+    <button class="bn-item" onclick="openMore()">${IC.menu}<span>More</span></button>
   </nav>`;
 }
 
 function render(){
   if(!user){ renderLogin(); return; }
-  if(isHuddleOnly() && route.view!=='huddle' && route.view!=='att' && route.view!=='help') route.view='huddle';   // huddle-only: Huddle + Attendance + Help
+  if(isHuddleOnly() && !['huddle','att','help','wall','home','team'].includes(route.view)) route.view='huddle';   // huddle-only: Home/Team/Huddle/Attendance/Wall/Help
   const content = route.view==='detail' ? detailHTML() :
+                  route.view==='home' ? homeHTML() :
+                  route.view==='team' ? teamHTML() :
+                  route.view==='funnel' ? funnelHTML() :
                   route.view==='att' ? attView() :
+                  route.view==='board' ? boardHTML() :
+                  route.view==='wall' ? wallHTML() :
                   route.view==='huddle' ? huddleHTML() :
                   route.view==='forms' ? formsHTML() :
                   route.view==='help' ? helpHTML() :
@@ -2038,7 +2799,7 @@ function openUpdate(){
   if(_apkLatest) go(_apkLatest);
   else fetch('version.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(go).catch(()=>toast('Update check fail — net dekho'));
 }
-let _backArm=0, _backReady=false;
+let _backReady=false;
 // true = app ke andar hi handle ho gaya (ruko); false = bahar jaane do (exit)
 function handleBack(){
   const fo=document.getElementById('formOverlay'); if(fo){ fo.remove(); return true; }   // form overlay band
@@ -2076,19 +2837,32 @@ function setupBackHandler(){
   });
 }
 document.getElementById('app').innerHTML = '<div class="login"><div class="login-card">Loading…</div></div>';
+// deep-link: shared WhatsApp link (#att/#huddle/#board/#wall) se seedha us section pe
+function _deepOpen(hv){
+  if(hv==='att') openAtt();
+  else if(hv==='huddle') openHuddle();
+  else if(hv==='board'){ if(canViewAllHA()) openBoard(); }
+  else if(hv==='wall') openWall();
+}
 auth.onAuthStateChanged(u=>{
   user=u;
   if(u){
-    setupBackHandler(); apkCheck();
-    if(isHuddleOnly()){ leads=[]; route.view='huddle'; attLoadOffices(); render(); hudLoad(); return; }   // CRM data load hi na ho
+    setupBackHandler(); apkCheck(); logAppOpen(); engageLoad();
+    const hv=(location.hash||'').replace('#','').toLowerCase();   // deep-link: #att / #huddle / #board / #wall
+    if(isHuddleOnly()){ leads=[]; attLoadOffices();
+      if(hv==='att') openAtt(); else if(hv==='wall') openWall(); else { route.view='huddle'; render(); hudLoad(); }
+      return; }
     attLoadOffices();
     if(!unsub){
       unsub = col().onSnapshot(snap=>{
-        leads = snap.docs.map(d=>{ const L={id:d.id, ...d.data()};
+        const all = snap.docs.map(d=>{ const L={id:d.id, ...d.data()};
           if(!Array.isArray(L.followUps)) L.followUps=[]; if(!L.need) L.need={}; return L; });
+        deletedLeads = all.filter(L=>L.deleted);     // bin
+        leads = all.filter(L=>!L.deleted);           // active (sab jagah yahi use hota)
         render(); updateBadge();
       }, err=>{ alert('Data load error: '+err.message); });
     }
+    _deepOpen(hv);   // link se seedha us section pe
   } else {
     if(unsub){ unsub(); unsub=null; }
     leads=[]; renderLogin();
