@@ -3,11 +3,11 @@ let justJoined = false; // show the welcome card once, right after registration 
 
 const ytId = url => (url.match(/(?:youtu\.be\/|v=|shorts\/|embed\/|live\/)([\w-]{11})/) || [])[1];
 const firstName = () => (me.full_name || '').split(/\s+/)[0];
-const hi = t => `<span class="hi" lang="hi">${t}</span>`; // the key instructions in Hindi too
+const hi = t => '';  // demo: English only // the key instructions in Hindi too
 const HELP_PHONE = '910000000000'; // WhatsApp for learners who are stuck
-function helpBtn(where, label = 'WhatsApp par madad') {
+function helpBtn(where, label = 'Help on WhatsApp') {
   const who = me ? `${me.full_name} (${me.phone})` : '';
-  const text = `Namaste, main ${who} Akshardham Academy LMS me "${where}" par atka hoon. Madad kijiye.`;
+  const text = `Hello, I am ${who} and I am stuck at "${where}" in the Akshardham Academy LMS. Please help.`;
   return `<a class="btn btn-sm btn-wa" href="https://wa.me/${HELP_PHONE}?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">${icon('whatsapp', 'sm')} ${label}</a>`;
 }
 // start_attempt's "no questions" message was Hinglish in early schema versions
@@ -52,29 +52,29 @@ async function viewRegister(email) {
         <span class="label">I am a <span class="req">*</span></span>
         <div class="opt-grid" role="radiogroup">
           <label class="opt"><input type="radio" name="type" value="candidate" checked onchange="fillCourses()">
-            <span class="opt-ico">${icon('briefcase')}</span><span><strong>Candidate</strong><span class="small">Applying for a job · नौकरी के लिए</span></span></label>
+            <span class="opt-ico">${icon('briefcase')}</span><span><strong>Candidate</strong><span class="small">Applying for a job</span></span></label>
           <label class="opt"><input type="radio" name="type" value="agent" onchange="fillCourses()">
-            <span class="opt-ico">${icon('handshake')}</span><span><strong>Agent</strong><span class="small">Want to partner with us · हमारे साथ एजेंट बनना है</span></span></label>
+            <span class="opt-ico">${icon('handshake')}</span><span><strong>Agent</strong><span class="small">Want to partner with us</span></span></label>
         </div>
       </div>
       <div class="field" id="r-role-field">
         <span class="label">Applying for <span class="req">*</span></span>
         <div class="opt-grid" role="radiogroup">
-          <label class="opt"><input type="radio" name="role" value="moderate" checked><span><strong>Sales Executive</strong><span class="small">Customer calls, site visits, sales · ग्राहक से बात, साइट विज़िट</span></span></label>
-          <label class="opt"><input type="radio" name="role" value="hard"><span><strong>Manager</strong><span class="small">Lead a team or a project · टीम या प्रोजेक्ट संभालना</span></span></label>
+          <label class="opt"><input type="radio" name="role" value="moderate" checked><span><strong>Sales Executive</strong><span class="small">Customer calls, site visits, sales</span></span></label>
+          <label class="opt"><input type="radio" name="role" value="hard"><span><strong>Manager</strong><span class="small">Lead a team or a project</span></span></label>
         </div>
       </div>
       <div class="field">
-        <label for="r-name">Full name · पूरा नाम <span class="req">*</span></label>
+        <label for="r-name">Full name<span class="req">*</span></label>
         <input id="r-name" type="text" required minlength="2" maxlength="80" autocomplete="name">
       </div>
       <div class="field">
-        <label for="r-phone">Mobile number · मोबाइल नंबर <span class="req">*</span></label>
+        <label for="r-phone">Mobile number<span class="req">*</span></label>
         <input id="r-phone" type="tel" required pattern="[6-9][0-9]{9}" maxlength="10" inputmode="numeric" autocomplete="tel-national" placeholder="98XXXXXXXX">
-        <p class="help">10 digits, without +91 · 10 अंक, +91 के बिना</p>
+        <p class="help">10 digits, without +91</p>
       </div>
       <div class="field">
-        <label for="r-course">Position / Training · ट्रेनिंग <span class="req">*</span></label>
+        <label for="r-course">Position / Training<span class="req">*</span></label>
         <select id="r-course" required></select>
       </div>
       <p id="r-err" class="form-error" role="alert"></p>
@@ -409,7 +409,7 @@ async function viewModule(courseId, moduleId) {
       <h1>${esc(m.title)}</h1>
       ${m.description ? `<p class="muted">${esc(m.description)}</p>` : ''}
       ${videos || `<div class="empty">${icon('video')}<p>This chapter has no video.</p></div>`}
-      <div class="row help-row"><p class="help" style="margin:0">Video not playing? Your progress is saved. · वीडियो नहीं चल रहा? आपकी progress सेव है।</p>${helpBtn(`${m.title}: video`)}</div>
+      <div class="row help-row"><p class="help" style="margin:0">Video not playing? Your progress is saved.</p>${helpBtn(`${m.title}: video`)}</div>
       ${m.state === 'passed' ? `<div class="notice ok">${icon('award')}<span><strong>Chapter complete.</strong> You can review it any time.</span></div>`
         : hasTest && hasTask ? `<div class="notice info">${icon('target')}<span>To complete this chapter: pass the test <strong>and</strong> submit the practical task.</span></div>` : ''}
     </section>
@@ -431,7 +431,7 @@ async function viewModule(courseId, moduleId) {
           ${camNeeded() ? 'कैमरा चालू रहेगा; चेहरा न दिखे या कोई और दिखे तो रिकॉर्ड होगा। रोशनी वाली जगह पर, स्क्रीन की तरफ मुँह करके बैठें। ' : ''}
           ${m.max_warnings ? `${m.max_warnings} warning होने पर टेस्ट अपने आप जमा हो जाएगा।` : ''}`)}</span></div>
       ${tracked
-        ? `<p class="help" id="watch-gate">${allWatched ? '' : `${icon('lock', 'sm')} Watch the full video to unlock the test. · टेस्ट खोलने के लिए पूरा वीडियो देखें।`}</p>`
+        ? `<p class="help" id="watch-gate">${allWatched ? '' : `${icon('lock', 'sm')} Watch the full video to unlock the test.`}</p>`
         : `<label class="check" style="margin-bottom:16px"><input type="checkbox" onchange="document.getElementById('start').disabled = !this.checked"> I have watched the full video</label>`}
       <button class="btn btn-primary" id="start" ${tracked && allWatched ? '' : 'disabled'} onclick="goFullscreen(); startTest('${courseId}','${moduleId}')">${icon('play', 'sm')} Start test</button>
     </section>` : ''}
@@ -502,7 +502,7 @@ function watchTick() {
     if (v.asking || !v.player?.getCurrentTime) continue;
     if (cam?.absent && v.player.getPlayerState() === YT.PlayerState.PLAYING) { // pressing play while away doesn't help
       v.player.pauseVideo();
-      if (Date.now() - v.warned > 4000) { v.warned = Date.now(); toast('Sit facing the camera to continue the video. · वीडियो चलाने के लिए कैमरे के सामने बैठें।', 'err'); }
+      if (Date.now() - v.warned > 4000) { v.warned = Date.now(); toast('Sit facing the camera to continue the video.', 'err'); }
       continue;
     }
     const t = v.player.getCurrentTime();
@@ -620,7 +620,7 @@ function drawWatch(v) {
   if (!el) return;
   el.innerHTML = v.completed
     ? `<span class="badge b-ok">${icon('check')} Watched</span> <span class="sub">You can skip and change speed freely now.</span>`
-    : `<div class="row" style="justify-content:space-between"><span class="sub">${icon('lock', 'sm')} First watch: no skipping ahead · पहली बार आगे skip नहीं होगा</span>
+    : `<div class="row" style="justify-content:space-between"><span class="sub">${icon('lock', 'sm')} First watch: no skipping ahead</span>
          <span class="sub num">${fmtTime(v.max)}${v.duration ? ` / ${fmtTime(v.duration)}` : ''}</span></div>
        <div class="bar"><i style="width:${v.duration ? Math.min(100, 100 * v.max / v.duration) : 0}%"></i></div>`;
 }
@@ -690,7 +690,7 @@ function camTick() {
   const multi = !!cam.multiSince && now - cam.multiSince >= MULTI_SEC * 1000;
   if (absent && !cam.absent) camEvent('no_face');
   if (multi && !cam.multi && cam.mode === 'test') camEvent('multi_face');
-  if (!absent && cam.absent) toast('Face visible again. Press play to continue. · चेहरा दिख रहा है, वीडियो चलाने के लिए play दबाएँ।');
+  if (!absent && cam.absent) toast('Face visible again. Press play to continue.');
   cam.absent = absent; cam.multi = multi;
   const st = document.getElementById('cam-state');
   if (st) {
@@ -712,7 +712,7 @@ function camEvent(type) {
     sb.rpc('log_video_event', { p_module: watch.moduleId, p_video: v.id, p_type: type });
   }
   toast(type === 'camera_off' ? 'The camera turned off, so the video paused. Reload the page to turn it on again.'
-    : 'Video paused: your face is not visible. Sit facing the camera in a bright place. · वीडियो रुक गया: चेहरा नहीं दिख रहा। रोशनी में कैमरे के सामने बैठें।', 'err');
+    : 'Video paused: your face is not visible. Sit facing the camera in a bright place.', 'err');
 }
 
 function camStop() {
@@ -737,7 +737,7 @@ function camGate(el, why) {
       el.innerHTML = `<div class="notice info">${CAM_NOTE()}</div>
         ${err ? `<div class="notice">${icon('alert')}<span>${err}</span></div>` : ''}
         <button class="btn btn-primary" id="cam-on">${icon('video', 'sm')} Turn on camera ${why}</button>
-        <details class="cam-help" ${err ? 'open' : ''}><summary>Camera not working? · कैमरा नहीं चल रहा?</summary>
+        <details class="cam-help" ${err ? 'open' : ''}><summary>Camera not working?</summary>
           ${pending ? `<p class="notice ok">${icon('clock')}<span>Your request has been sent. You can continue after the admin approves it.${hi('आपकी request भेज दी गई है। Admin की मंज़ूरी के बाद आप आगे बढ़ पाएँगे।')}</span></p>`
           : `<p class="help">If you allowed the camera and it still doesn't work (or your device has none), ask the admin for approval to continue without it.${hi('कैमरा allow करने के बाद भी न चले (या डिवाइस में कैमरा न हो), तो नीचे समस्या लिखकर admin से मंज़ूरी माँगें।')}</p>
              <form id="cam-req"><textarea name="reason" rows="3" maxlength="500" placeholder="What is the problem? e.g. my laptop has no camera" aria-label="Problem with the camera"></textarea>

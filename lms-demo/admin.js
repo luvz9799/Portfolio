@@ -873,7 +873,7 @@ function reviewItem(x) {
       <div style="flex:0 0 auto"><span class="label">Mark</span><div class="seg" role="radiogroup" aria-label="Mark">${MARKS.map(v =>
         `<label class="rv-mark"><input type="radio" name="mark" value="${v}" ${v === nearest(Number(x.mark)) ? 'checked' : ''}><span>${v === 0.5 ? '½' : v === 0.25 ? '¼' : v === 0.75 ? '¾' : v}</span></label>`).join('')}</div></div>
       <div style="flex:1 1 220px"><label for="fb-${n}">Feedback <span class="muted">(optional)</span></label>
-        <input id="fb-${n}" name="feedback" type="text" value="${esc(x.feedback)}" placeholder="जैसे: परिवार की ज़रूरत पूछना छूट गया"></div>
+        <input id="fb-${n}" name="feedback" type="text" value="${esc(x.feedback)}" placeholder="e.g. Missed asking about the family's needs"></div>
       <button class="btn btn-primary" type="submit">${icon('check', 'sm')} ${x.review === 'pending' ? 'Save review' : 'Update'}</button>
     </form>
   </div>`;
@@ -1111,7 +1111,7 @@ async function viewModule(id) {
         </div>
         <div class="ai-step">
           <h3><span class="n">3</span> Paste the AI's answer here</h3>
-          <textarea id="ai-text" rows="10" oninput="previewAi()" placeholder="Q: अक्षरधाम एसोसिएट्स किस शहर में है?&#10;A) कोटा&#10;B) झालावाड़&#10;C) जयपुर&#10;Answer: B&#10;Level: Easy"></textarea>
+          <textarea id="ai-text" rows="10" oninput="previewAi()" placeholder="Q: In which city is Akshardham Associates based?&#10;A) Kota&#10;B) Jhalawar&#10;C) Jaipur&#10;Answer: B&#10;Level: Easy"></textarea>
           <div id="ai-preview"></div>
           <button class="btn btn-primary" id="ai-save" onclick="saveAi()" disabled>${icon('check', 'sm')} Save questions</button>
         </div>
@@ -1133,7 +1133,7 @@ async function viewModule(id) {
           select the rows, copy (Ctrl+C) and paste here (Ctrl+V). No | signs needed, and its Level column sets each row's level.<br>
           <button class="link" onclick="downloadTemplate('mcq')">MCQ / short answer template</button> ·
           <button class="link" onclick="downloadTemplate('descriptive')">Descriptive (long answer) template</button></span></div>
-        <textarea id="bulk" rows="7" oninput="previewQuestions()" placeholder="अक्षरधाम एसोसिएट्स किस शहर में है? | कोटा | झालावाड़ | जयपुर | 2"></textarea>
+        <textarea id="bulk" rows="7" oninput="previewQuestions()" placeholder="In which city is Akshardham Associates based? | Kota | Jhalawar | Jaipur | 2"></textarea>
       </div>
       <div id="qb-preview"></div>
       <button class="btn btn-primary" onclick="addQuestions('${id}')">${icon('plus', 'sm')} Add questions</button>
@@ -1163,11 +1163,11 @@ async function viewModule(id) {
             : `<input type="hidden" name="video" value="${vidIds[0]}">`}
           <div class="field"><label for="cpn-at">Stop at (minutes:seconds)</label><input id="cpn-at" name="at" type="text" placeholder="2:30" inputmode="numeric" required></div>
         </div>
-        <div class="field"><label for="cpn-q">Question</label><textarea id="cpn-q" name="text" rows="2" required placeholder="जैसे: वीडियो के अनुसार ग्राहक से सबसे पहले क्या पूछना चाहिए?"></textarea></div>
+        <div class="field"><label for="cpn-q">Question</label><textarea id="cpn-q" name="text" rows="2" required placeholder="e.g. According to the video, what should you ask the customer first?"></textarea></div>
         <label>Options <span class="muted">— tick the correct one</span></label>
         ${[0, 1, 2, 3].map(j => `<div class="qf-row"><input class="qf-ok" type="radio" name="correct" value="${j}" ${j === 0 ? 'checked' : ''} aria-label="Option ${j + 1} is correct">
           <input type="text" name="opt" placeholder="Option ${j + 1}${j > 1 ? ' (optional)' : ''}" aria-label="Option ${j + 1}"></div>`).join('')}
-        <div class="field"><label for="cpn-ex">Explanation <span class="muted">(shown after the answer)</span></label><input id="cpn-ex" name="explanation" type="text" placeholder="जैसे: पहले ज़रूरत समझें, फिर प्लॉट बताएँ"></div>
+        <div class="field"><label for="cpn-ex">Explanation <span class="muted">(shown after the answer)</span></label><input id="cpn-ex" name="explanation" type="text" placeholder="e.g. Understand the need first, then suggest a plot"></div>
         <p class="form-error" id="cpn-err" role="alert"></p>
         <button class="btn btn-primary" type="submit">${icon('plus', 'sm')} Add checkpoint</button>
       </form>
@@ -1203,64 +1203,63 @@ let aiCtx = null; // the open chapter, for the AI prompt and the paste
 function aiPrompt() {
   const n = Math.max(2 * aiCtx.perTest, 5); // 2× per test, so a retry gets fresh questions
   const cp = aiCtx.videoId && aiCtx.checkpoints;
-  return `Neeche di gayi training video ki script se test ke sawal banao.
+  return `Write test questions from the training video script below.
 
-Training: Akshardham Associates (real estate, Jhalawar) ki sales team.
+Training: the sales team of Akshardham Associates (real estate, Jhalawar).
 Chapter: ${aiCtx.title}
 
-Banane hain:
-- ${n} Easy sawal (agents ke liye: seedhe, video ki basic baatein)
-- ${n} Moderate sawal (sales executives ke liye: samajh aur use karna)
-- ${n} Hard sawal (managers ke liye: situation, decision, team handling)
-- 2 Descriptive sawal (Moderate ya Hard, jisme 100-150 words likhne hon)
-${cp ? '- 4 Checkpoint sawal: video ke beech me rukne wale, har 3-4 minute par (script me time ho to usi ke hisaab se)\n' : ''}
-Sawal Hindi me likho (zaroorat ho to English words chalenge). Har sawal sirf script ki baaton par ho.
-Sahi jawab ka option har baar alag jagah (A, B, C, D) par rakho.
+Create:
+- ${n} Easy questions (for agents: direct, the basics of the video)
+- ${n} Moderate questions (for sales executives: understanding and use)
+- ${n} Hard questions (for managers: situations, decisions, team handling)
+- 2 Descriptive questions (Moderate or Hard, needing 100-150 words)
+${cp ? '- 4 Checkpoint questions that pause the video, every 3-4 minutes (use the times in the script if it has them)\n' : ''}
+Base every question only on the script. Put the correct option in a different place (A, B, C, D) each time.
 
-FORMAT (bilkul aisa hi, har sawal ke beech ek khaali line; koi heading, numbering ya extra text mat likhna):
+FORMAT (exactly like this, one blank line between questions; no headings, numbering or extra text):
 
-Q: अक्षरधाम एसोसिएट्स किस शहर में है?
-A) कोटा
-B) झालावाड़
-C) जयपुर
-D) उदयपुर
+Q: In which city is Akshardham Associates based?
+A) Kota
+B) Jhalawar
+C) Jaipur
+D) Udaipur
 Answer: B
 Level: Easy
 
-Q: साइट विज़िट पर क्या साथ ले जाना चाहिए? (एक से ज़्यादा सही)
-A) प्लॉट मैप
-B) लंच
-C) प्राइस लिस्ट
-D) ब्रोशर
+Q: What should you take on a site visit? (more than one is correct)
+A) Plot map
+B) Lunch
+C) Price list
+D) Brochure
 Answer: A, C, D
 Level: Moderate
 
-Q: झालावाड़ किस राज्य में है?
-Answer: राजस्थान ; Rajasthan
+Q: Which state is Jhalawar in?
+Answer: Rajasthan
 Level: Easy
 
-Q: एक नए ग्राहक के साथ पहली कॉल कैसे करेंगे? विस्तार से लिखें।
+Q: How would you make the first call to a new customer? Answer in detail.
 Type: Descriptive
 Level: Moderate
-Keywords: बजट; परिवार; साइट विज़िट
-Model answer: नमस्ते से शुरुआत करें, अपना परिचय दें, फिर बजट और ज़रूरत पूछें...
+Keywords: budget; family; site visit
+Model answer: Greet the customer, introduce yourself, then ask about their budget and needs...
 Words: 100-150
 ${cp ? `
-Q: वीडियो के अनुसार ग्राहक से सबसे पहले क्या पूछना चाहिए?
-A) बजट
-B) नाम और ज़रूरत
-C) प्लॉट साइज़
+Q: According to the video, what should you ask the customer first?
+A) Budget
+B) Name and needs
+C) Plot size
 Answer: B
 Time: 2:30
-Explanation: पहले ग्राहक को समझें, फिर प्लॉट बताएँ।
+Explanation: Understand the customer first, then suggest a plot.
 ` : ''}
 Rules:
-- Ek sahi jawab ho to "Answer: B", ek se zyada ho to "Answer: A, C".
-- Chhote likhit jawab (1-3 words) wale sawal me options nahi hote, "Answer:" me jawab likho; doosra sahi roop ";" se alag karo.
-- Descriptive me "Keywords:" zaroori hain (wo shabd jo achhe jawab me aane chahiye, ";" se alag).
-${cp ? '- Checkpoint sawal me "Time:" (minute:second) aur "Explanation:" likho, aur ek hi sahi jawab ho.\n' : ''}
+- One correct answer: "Answer: B"; more than one: "Answer: A, C".
+- Short written answers (1-3 words) have no options; write the answer after "Answer:" and separate other accepted forms with ";".
+- Descriptive questions need "Keywords:" (words a good answer should contain, separated by ";").
+${cp ? '- Checkpoint questions need "Time:" (minutes:seconds) and "Explanation:", with exactly one correct answer.\n' : ''}
 SCRIPT:
-<<< yahan video ki script ya transcript paste karein >>>`;
+<<< paste the video script or transcript here >>>`;
 }
 
 async function copyAiPrompt(btn) {
@@ -1306,7 +1305,7 @@ async function saveAi() {
 const QF_TYPES = { single: 'One correct answer', multi: 'More than one correct answer', tf: 'True / False', text: 'Written answer (1–3 words)', essay: 'Descriptive answer (trainer checks)' };
 const qfBlank = kind => ({
   kind, text: '', editing: null,
-  options: kind === 'tf' ? ['सही', 'गलत'] : ['', '', '', ''],
+  options: kind === 'tf' ? ['True', 'False'] : ['', '', '', ''],
   correct: kind === 'tf' ? [0] : [], accepted: [''], model_answer: '', min_words: '', max_words: '',
 });
 let qf = qfBlank('single'), qfModule = null;
@@ -1332,7 +1331,7 @@ function renderQForm() {
           <select id="qf-kind" onchange="qfSetKind(this.value)">${Object.entries(QF_TYPES).map(([k, l]) => `<option value="${k}" ${k === qf.kind ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       </div>
       <div class="field"><label for="qf-text">Question</label>
-        <textarea id="qf-text" rows="3" placeholder="जैसे: अक्षरधाम एसोसिएट्स किस शहर में है?">${esc(qf.text)}</textarea></div>
+        <textarea id="qf-text" rows="3" placeholder="e.g. In which city is Akshardham Associates based?">${esc(qf.text)}</textarea></div>
       <div id="qf-answers"></div>
       <p id="qf-err" class="form-error" role="alert"></p>
       <div class="row">
@@ -1357,23 +1356,23 @@ function drawQAnswers() {
         </div>
         <p class="help">The learner sees a live word count and can't submit until the answer is inside this range.</p></div>
       <div class="field"><label for="qf-model">Model answer <span class="muted">(for the trainer while checking)</span></label>
-        <textarea id="qf-model" rows="3" placeholder="जैसे: ग्राहक का बजट, परिवार की ज़रूरत पूछें और साइट विज़िट ऑफ़र करें">${esc(qf.model_answer)}</textarea></div>
+        <textarea id="qf-model" rows="3" placeholder="e.g. Ask about the budget and family needs, then offer a site visit">${esc(qf.model_answer)}</textarea></div>
       <label>Keywords <span class="muted">— points a good answer must mention</span></label>
       ${qf.accepted.map((a, j) => `<div class="qf-row">
-        <input class="qf-acc" type="text" value="${esc(a)}" placeholder="${j ? 'Another keyword' : 'जैसे: बजट / budget'}" aria-label="Keyword ${j + 1}">
+        <input class="qf-acc" type="text" value="${esc(a)}" placeholder="${j ? 'Another keyword' : 'e.g. budget / budgets'}" aria-label="Keyword ${j + 1}">
         ${j ? `<button type="button" class="icon-btn qf-x" onclick="qfRemoveAccepted(${j})" aria-label="Remove">${icon('x', 'sm')}</button>` : ''}</div>`).join('')}
       <button type="button" class="btn btn-sm" onclick="qfAddAccepted()">${icon('plus', 'sm')} Add keyword</button>
-      <p class="help">The learner writes freely. Each keyword found gives part marks right away (2 of 3 found = 0.67). Put other spellings on the same line with / , e.g. <code>बजट / budget</code>.
+      <p class="help">The learner writes freely. Each keyword found gives part marks right away (2 of 3 found = 0.67). Put other spellings on the same line with / , e.g. <code>budget / budgets</code>.
         A trainer then checks every answer on the Reviews page and gives the final mark.</p>`;
     return;
   }
   if (qf.kind === 'text') {
     box.innerHTML = `<label>Correct answer</label>
       ${qf.accepted.map((a, j) => `<div class="qf-row">
-        <input class="qf-acc" type="text" value="${esc(a)}" placeholder="${j ? 'Another accepted spelling (optional)' : 'जैसे: राजस्थान'}" aria-label="Accepted answer ${j + 1}">
+        <input class="qf-acc" type="text" value="${esc(a)}" placeholder="${j ? 'Another accepted spelling (optional)' : 'e.g. Rajasthan'}" aria-label="Accepted answer ${j + 1}">
         ${j ? `<button type="button" class="icon-btn qf-x" onclick="qfRemoveAccepted(${j})" aria-label="Remove">${icon('x', 'sm')}</button>` : ''}</div>`).join('')}
       <button type="button" class="btn btn-sm" onclick="qfAddAccepted()">${icon('plus', 'sm')} Another spelling</button>
-      <p class="help">The learner types the answer. Capitals and extra spaces are ignored, so keep it short (1 to 3 words) and add every spelling you accept, e.g. राजस्थान and Rajasthan.</p>`;
+      <p class="help">The learner types the answer. Capitals and extra spaces are ignored, so keep it short (1 to 3 words) and add every spelling you accept, e.g. Rajasthan and Rajastan.</p>`;
     return;
   }
   const multi = qf.kind === 'multi', tf = qf.kind === 'tf';
@@ -1408,7 +1407,7 @@ function qfSync() {
 function qfSetKind(kind) {
   qfSync();
   const was = qf.kind;
-  if (kind === 'tf') Object.assign(qf, { options: ['सही', 'गलत'], correct: [0] });
+  if (kind === 'tf') Object.assign(qf, { options: ['True', 'False'], correct: [0] });
   else if (was === 'tf' && kind !== 'text' && kind !== 'essay') Object.assign(qf, { options: ['', '', '', ''], correct: [] });
   if (kind === 'single') qf.correct = qf.correct.slice(0, 1);
   qf.kind = kind;
@@ -1509,18 +1508,18 @@ function drawBank() {
 const TEMPLATES = {
   mcq: ['question-template.csv', [
     ['Level', 'Question', 'Option 1', 'Option 2', 'Option 3', 'Option 4', 'Option 5', 'Option 6', 'Answer'],
-    ['Easy', 'अक्षरधाम एसोसिएट्स किस शहर में है?', 'कोटा', 'झालावाड़', 'जयपुर', 'उदयपुर', '', '', '2'],
-    ['Easy', 'प्लॉट खरीदने से पहले रजिस्ट्री के कागज़ चेक करने चाहिए।', 'सही', 'गलत', '', '', '', '', '1'],
-    ['Moderate', 'साइट विज़िट पर क्या साथ ले जाएं?', 'प्लॉट मैप', 'ब्रोशर', 'लंच', 'प्राइस लिस्ट', '', '', '1+2+4'],
-    ['Hard', 'झालावाड़ किस राज्य में है?', '', '', '', '', '', '', 'राजस्थान ; Rajasthan'],
+    ['Easy', 'In which city is Akshardham Associates based?', 'Kota', 'Jhalawar', 'Jaipur', 'Udaipur', '', '', '2'],
+    ['Easy', 'Check the registry papers before buying a plot.', 'True', 'False', '', '', '', '', '1'],
+    ['Moderate', 'What should you take on a site visit?', 'Plot map', 'Brochure', 'Lunch', 'Price list', '', '', '1+2+4'],
+    ['Hard', 'Which state is Jhalawar in?', '', '', '', '', '', '', 'Rajasthan'],
   ]],
   descriptive: ['descriptive-template.csv', [
     ['Type', 'Level', 'Question', 'Keywords (separate with ;)', 'Model answer', 'Min words', 'Max words'],
-    ['Descriptive', 'Moderate', 'एक नए ग्राहक के साथ पहली कॉल कैसे करेंगे? विस्तार से लिखें।',
-     'बजट / budget; परिवार / family; साइट विज़िट / site visit',
-     'नमस्ते से शुरुआत करें, अपना और अक्षरधाम एसोसिएट्स का परिचय दें।\nग्राहक का बजट और परिवार की ज़रूरत पूछें।\nसही प्लॉट सुझाएँ और साइट विज़िट का समय तय करें।', '100', '150'],
-    ['Descriptive', 'Hard', 'टीम का कन्वर्जन रेट गिर रहा है। मैनेजर के तौर पर आप क्या कदम उठाएंगे?',
-     'कॉल रिकॉर्डिंग / recording; ट्रेनिंग / training; फॉलो-अप / follow up; टारगेट / target', '', '100', '150'],
+    ['Descriptive', 'Moderate', 'How would you make the first call to a new customer? Answer in detail.',
+     'budget; family; site visit',
+     'Greet the customer and introduce yourself and Akshardham Associates.\nAsk about their budget and the family\'s needs.\nSuggest the right plot and fix a site visit time.', '100', '150'],
+    ['Descriptive', 'Hard', 'Your team\'s conversion rate is falling. What steps would you take as manager?',
+     'call recording; training; follow up; target', '', '100', '150'],
   ]],
 };
 

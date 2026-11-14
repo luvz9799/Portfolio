@@ -156,7 +156,7 @@ details.box{background:var(--card);border-radius:14px;box-shadow:var(--sh);paddi
 
 <div id="modal" class="modal" hidden></div>
 <div id="ask" class="modal" hidden></div>
-<div id="busy" hidden><div class="spin"></div><div id="busyT">Load ho raha hai…</div></div>
+<div id="busy" hidden><div class="spin"></div><div id="busyT">Loading…</div></div>
 <div id="toast" hidden></div>
 <input type="file" id="afile" accept="audio/*,video/mp4,.m4a,.mp3,.wav,.ogg,.webm,.aac" hidden>
 
@@ -168,35 +168,38 @@ details.box{background:var(--card);border-radius:14px;box-shadow:var(--sh);paddi
   const NOW = () => new Date().toISOString().slice(0,19);
   const T = D(-1)+'T10:00:00';
   const schema = [
-    { key:'Villages', label:'Gaon', one:'Gaon', fields:[{k:'Name',l:'Gaon ka naam',t:'text',req:1},{k:'Population',l:'Aabadi',t:'text'},{k:'DistanceKm',l:'Doori (km)',t:'text',req:1},{k:'HaatDay',l:'Haat ka din',t:'text'}]},
-    { key:'People', label:'Log', one:'Vyakti', fields:[{k:'Name',l:'Naam',t:'text',req:1},{k:'Mobile',l:'Mobile',t:'tel',req:1},{k:'VillageID',l:'Gaon',t:'ref',ref:'Villages',req:1},{k:'Roles',l:'Role',t:'multi',o:['Sarpanch','Teacher','Dukaandar','Kisan','Agent']},{k:'Notes',l:'Notes',t:'text'}]},
-    { key:'Shops', label:'Dukaan', one:'Dukaan', fields:[{k:'Name',l:'Naam',t:'text',req:1},{k:'Type',l:'Type',t:'text'},{k:'VillageID',l:'Gaon',t:'ref',ref:'Villages',req:1},{k:'OwnerID',l:'Maalik',t:'ref',ref:'People'}]},
-    { key:'Events', label:'Mele / Events', one:'Event', fields:[{k:'Name',l:'Naam',t:'text',req:1},{k:'Type',l:'Type',t:'text'},{k:'VillageID',l:'Gaon',t:'ref',ref:'Villages',req:1},{k:'Day',l:'Din',t:'text'}]},
+    { key:'Villages', label:'Villages', one:'Village', fields:[{k:'Name',l:'Village name',t:'text',req:1},{k:'Population',l:'Population',t:'text'},{k:'DistanceKm',l:'Distance (km)',t:'text',req:1},{k:'HaatDay',l:'Market day',t:'text'}]},
+    { key:'People', label:'People', one:'Person', fields:[{k:'Name',l:'Name',t:'text',req:1},{k:'Mobile',l:'Mobile',t:'tel',req:1},{k:'VillageID',l:'Village',t:'ref',ref:'Villages',req:1},{k:'Roles',l:'Role',t:'multi',o:['Sarpanch','Teacher','Shopkeeper','Farmer','Agent']},{k:'Notes',l:'Notes',t:'text'}]},
+    { key:'Shops', label:'Shops', one:'Shop', fields:[{k:'Name',l:'Name',t:'text',req:1},{k:'Type',l:'Type',t:'text'},{k:'VillageID',l:'Village',t:'ref',ref:'Villages',req:1},{k:'OwnerID',l:'Owner',t:'ref',ref:'People'}]},
+    { key:'Events', label:'Fairs / Events', one:'Event', fields:[{k:'Name',l:'Name',t:'text',req:1},{k:'Type',l:'Type',t:'text'},{k:'VillageID',l:'Village',t:'ref',ref:'Villages',req:1},{k:'Day',l:'Day',t:'text'}]},
   ];
   const V = (ID,Name,Population,DistanceKm,HaatDay)=>({ID,Name,Population,DistanceKm,HaatDay,CreatedAt:T,CreatedBy:'Demo'});
   const P = (ID,Name,Mobile,VillageID,Roles)=>({ID,Name,Mobile,VillageID,Roles,CreatedAt:T,CreatedBy:'Demo'});
   const data = {
-    Villages:[V('v1','Sarola Kalan','6200','0','Ravivar'),V('v2','Demo Gaon A','2400','6','Budhvar'),V('v3','Demo Gaon B','3100','9','Shukravar'),V('v4','Demo Gaon C','1800','12','')],
-    People:[P('p1','Ramesh Meena','9876500001','v1','Sarpanch'),P('p2','Sita Devi','9876500002','v2','Teacher'),P('p3','Mohan Lal','9876500003','v1','Dukaandar'),P('p4','Gopal Singh','9876500004','v3','Kisan'),P('p5','Suresh Kumar','9876500005','v2','Agent'),P('p6','Kailash','','v4','Kisan')],
-    Shops:[{ID:'s1',Name:'Mohan Kirana',Type:'Kirana',VillageID:'v1',OwnerID:'p3',CreatedAt:T,CreatedBy:'Demo'},{ID:'s2',Name:'Shiv Mobile',Type:'Mobile',VillageID:'v2',CreatedAt:T,CreatedBy:'Demo'}],
-    Events:[{ID:'e1',Name:'Dussehra Mela',Type:'Mela',VillageID:'v1',Day:'Oct',CreatedAt:T,CreatedBy:'Demo'}],
+    Villages:[V('v1','Sarola Kalan','6200','0','Sunday'),V('v2','Demo Village A','2400','6','Wednesday'),V('v3','Demo Village B','3100','9','Friday'),V('v4','Demo Village C','1800','12','')],
+    People:[P('p1','Ramesh Meena','9876500001','v1','Sarpanch'),P('p2','Sita Devi','9876500002','v2','Teacher'),P('p3','Mohan Lal','9876500003','v1','Shopkeeper'),P('p4','Gopal Singh','9876500004','v3','Farmer'),P('p5','Suresh Kumar','9876500005','v2','Agent'),P('p6','Kailash','','v4','Farmer')],
+    Shops:[{ID:'s1',Name:'Mohan Grocery',Type:'Grocery',VillageID:'v1',OwnerID:'p3',CreatedAt:T,CreatedBy:'Demo'},{ID:'s2',Name:'Shiv Mobile',Type:'Mobile',VillageID:'v2',CreatedAt:T,CreatedBy:'Demo'}],
+    Events:[{ID:'e1',Name:'Dussehra Fair',Type:'Fair',VillageID:'v1',Day:'Oct',CreatedAt:T,CreatedBy:'Demo'}],
   };
   const targets = [
-    {Entity:'Villages',Label:'10 km ke saare gaon',Scope:'Total',Minimum:5,Deadline:D(8)},
-    {Entity:'People',Label:'Har gaon ka Sarpanch',Scope:'PerVillage',Minimum:1,Field:'Roles',Value:'Sarpanch',Deadline:D(5)},
-    {Entity:'People',Label:'Har gaon ke 2 influencer',Scope:'PerVillage',Minimum:2,Deadline:D(10)},
-    {Entity:'Shops',Label:'Har gaon ki 1 dukaan',Scope:'PerVillage',Minimum:1,Deadline:D(-1)},
-    {Entity:'Events',Label:'Mele aur haat',Scope:'Total',Minimum:3,Deadline:D(12)},
+    {Entity:'Villages',Label:'All villages within 10 km',Scope:'Total',Minimum:5,Deadline:D(8)},
+    {Entity:'People',Label:'The sarpanch of every village',Scope:'PerVillage',Minimum:1,Field:'Roles',Value:'Sarpanch',Deadline:D(5)},
+    {Entity:'People',Label:'2 influencers per village',Scope:'PerVillage',Minimum:2,Deadline:D(10)},
+    {Entity:'Shops',Label:'1 shop per village',Scope:'PerVillage',Minimum:1,Deadline:D(-1)},
+    {Entity:'Events',Label:'Fairs and markets',Scope:'Total',Minimum:3,Deadline:D(12)},
   ];
-  const guide = [];
-  const SAMPLE = 'Aaj Demo Gaon A gaye. Sarpanch Rameshwar Meena ji se mile, unka number 98765 00011. Unki Meena General Store naam ki kirana dukaan hai. Gaon mein har Budhvar haat lagta hai.';
+  const guide = [
+    {Section:'People', KisseLena:'The sarpanch, teachers, shopkeepers and anyone people listen to', Script:'Introduce yourself, ask who in the village helps people decide, and note their number.', UpdatedAt:T, UpdatedBy:'Demo'},
+  ];
+  // The field team speaks Hindi; the sample note is Hindi (in Roman script) with its English meaning.
+  const SAMPLE = 'Aaj Demo Village A gaye. Sarpanch Rameshwar Meena ji se mile, unka number 98765 00011. Unki Meena General Store naam ki kirana dukaan hai. Gaon mein har Budhvar haat lagta hai.\n\n(English: Visited Demo Village A today. Met the sarpanch, Rameshwar Meena, number 98765 00011. He owns a grocery shop called Meena General Store. The village has a market every Wednesday.)';
   window.DEMO_SAMPLE = SAMPLE;
   let n = 100; const nid = p => p + (++n);
   function extract(text){
     if (/Rameshwar/i.test(text)) return [
-      {entity:'People', data:{Name:'Rameshwar Meena',Mobile:'9876500011',VillageID:'Demo Gaon A',Roles:'Sarpanch'}, evidence:'Sarpanch Rameshwar Meena ji se mile'},
-      {entity:'Shops', data:{Name:'Meena General Store',Type:'Kirana',VillageID:'Demo Gaon A',OwnerID:'Rameshwar Meena'}, evidence:'Meena General Store naam ki kirana dukaan'},
-      {entity:'Events', data:{Name:'Budhvar Haat',Type:'Haat',VillageID:'Demo Gaon A',Day:'Budhvar'}, evidence:'har Budhvar haat lagta hai'}];
+      {entity:'People', data:{Name:'Rameshwar Meena',Mobile:'9876500011',VillageID:'Demo Village A',Roles:'Sarpanch'}, evidence:'Met the sarpanch, Rameshwar Meena'},
+      {entity:'Shops', data:{Name:'Meena General Store',Type:'Grocery',VillageID:'Demo Village A',OwnerID:'Rameshwar Meena'}, evidence:'a grocery shop called Meena General Store'},
+      {entity:'Events', data:{Name:'Wednesday market',Type:'Market',VillageID:'Demo Village A',Day:'Wednesday'}, evidence:'a market every Wednesday'}];
     // Simple stand-in for the real AI step: picks a name and a 10-digit number.
     const mob = (text.replace(/\s+/g,'').match(/[6-9]\d{9}/) || [''])[0];
     const nm = (text.match(/([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+(?:ji|Ji)\b/) || text.match(/\b([A-Z][a-z]+\s[A-Z][a-z]+)\b/) || ['', ''])[1];
@@ -270,14 +273,14 @@ async function api(action, body) {
   let res;
   try {
     res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ action, user: AUTH.user }, body || {})) });
-  } catch (e) { throw new Error('Internet ya server se connection nahi ho paya') }
+  } catch (e) { throw new Error('Could not reach the server. Check your connection') }
   let j;
-  try { j = JSON.parse(await res.text()) } catch (e) { throw new Error('Backend ka URL ya deployment galat hai: /exec wala URL daalein aur deployment me "Who has access: Anyone" rakhein') }
-  if (!j.ok) throw new Error(j.error || 'Kuch galat hua');
+  try { j = JSON.parse(await res.text()) } catch (e) { throw new Error('The backend URL or deployment is wrong: use the /exec URL with access set to Anyone') }
+  if (!j.ok) throw new Error(j.error || 'Something went wrong');
   if (S && (action === 'saveBatch' || action === 'remove')) { S.data = j.data; store.set('sfd_cache', JSON.stringify(S)) }
   return j.data;
 }
-function busy(t) { $('#busyT').textContent = t || 'Load ho raha hai…'; $('#busy').hidden = false }
+function busy(t) { $('#busyT').textContent = t || 'Loading…'; $('#busy').hidden = false }
 function idle() { $('#busy').hidden = true }
 let tT; function toast(m, bad) { const t = $('#toast'); t.textContent = m; t.className = bad ? 'bad' : ''; t.hidden = false; clearTimeout(tT); tT = setTimeout(() => t.hidden = true, bad ? 5000 : 2600) }
 function ask(title, text, btns) {
@@ -308,14 +311,14 @@ function findByName(list, name, fuzzy, vid) {
 }
 function refLabel(ref, v) {
   if (!v) return '';
-  if (v.startsWith('new:')) return v.slice(4) + ' (naya)';
-  if (v.startsWith('tmp:')) { const it = PV.items.find(x => x.entity === ref && 'tmp:' + x.tmp === v); if (!it) return ''; const ex = it.existingId && byId(ref, it.existingId); return ex ? titleOf(ref, ex) : titleOf(ref, it.data) + ' (naya)' }
+  if (v.startsWith('new:')) return v.slice(4) + ' (new)';
+  if (v.startsWith('tmp:')) { const it = PV.items.find(x => x.entity === ref && 'tmp:' + x.tmp === v); if (!it) return ''; const ex = it.existingId && byId(ref, it.existingId); return ex ? titleOf(ref, ex) : titleOf(ref, it.data) + ' (new)' }
   const r = byId(ref, v); return r ? titleOf(ref, r) : v;
 }
 function titleOf(k, r) {
   if (k === 'Connections') return (refLabel('People', r.PersonA) || '?') + ' ↔ ' + (refLabel('People', r.PersonB) || '?');
   if (k === 'Options') return [r.Type, r.Location].filter(Boolean).join(' · ') || 'Option';
-  return r.Name || '(naam nahi)';
+  return r.Name || '(no name)';
 }
 function subOf(k, r) {
   const v = r.VillageID ? refLabel('Villages', r.VillageID) : '';
@@ -373,25 +376,25 @@ function vDash() {
   return `
   <div class="card hero">
     <div class="ring"><svg width="112" height="112" viewBox="0 0 112 112"><circle cx="56" cy="56" r="50" fill="none" stroke="#EDF0F4" stroke-width="11"/><circle cx="56" cy="56" r="50" fill="none" stroke="var(--pri)" stroke-width="11" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - c.overall)}" transform="rotate(-90 56 56)"/></svg><b>${p}%</b></div>
-    <div class="grow"><h3>Database completion</h3><p>${left == null ? '' : left >= 0 ? `Final deadline ${dShort(last)} · ${left} din baaki` : `Final deadline ${dShort(last)} nikal chuki hai`}</p></div>
+    <div class="grow"><h3>Database completion</h3><p>${left == null ? '' : left >= 0 ? `Final deadline ${dShort(last)} · ${left} days left` : `Final deadline ${dShort(last)} has passed`}</p></div>
   </div>
   <div class="stats">
     <div class="stat"><b>${total}</b><span>Kul entries</span></div>
-    <div class="stat"><b>${aaj}</b><span>Aaj ki entries</span></div>
+    <div class="stat"><b>${aaj}</b><span>Today’s entries</span></div>
     <div class="stat ${late ? 'bad' : ''}"><b>${late}</b><span>Target late</span></div>
   </div>
   <h2>Targets</h2>
   <div class="card">${sorted.map(l => `<button class="line" data-go="${l.Entity}">
     <div class="lrow"><b>${esc(l.Label)}${l.pct >= 1 ? '<i class="tagc done">Poora</i>' : l.late ? '<i class="tagc late">Late</i>' : ''}</b><span>${l.have}/${l.need}${l.Deadline ? ' · ' + dShort(l.Deadline) : ''}</span></div>
-    <div class="bar ${l.pct >= 1 ? 'done' : l.late ? 'late' : ''}"><i style="width:${Math.round(l.pct * 100)}%"></i></div></button>`).join('') || '<div class="empty">Targets tab khali hai</div>'}</div>
-  <h2>Gaon-wise</h2>
+    <div class="bar ${l.pct >= 1 ? 'done' : l.late ? 'late' : ''}"><i style="width:${Math.round(l.pct * 100)}%"></i></div></button>`).join('') || '<div class="empty">The Targets tab is empty</div>'}</div>
+  <h2>By village</h2>
   ${c.vill.length ? `<div class="vgrid">${c.vill.map(x => `<button class="vg" data-edit="Villages|${x.v.ID}"><b>${esc(x.v.Name)}</b><div class="bar ${x.pct >= 1 ? 'done' : ''}"><i style="width:${Math.round(x.pct * 100)}%"></i></div><span>${Math.round(x.pct * 100)}% poora</span></button>`).join('')}</div>`
-      : `<div class="card empty"><b>Abhi koi gaon nahi hai</b>Sabse pehle aaspaas ke gaon ki list banayein.<br><br><button class="btn pri" data-new="Villages">${ic('plus', 18)} Add Gaon</button></div>`}`;
+      : `<div class="card empty"><b>No villages yet</b>Start by listing the villages nearby.<br><br><button class="btn pri" data-new="Villages">${ic('plus', 18)} Add village</button></div>`}`;
 }
 
 function vData() {
   return `<div class="tabs">${S.schema.map(e => `<button class="tab ${CUR == e.key ? 'on' : ''}" data-cur="${e.key}">${esc(e.label)}<em>${rows(e.key).length}</em></button>`).join('')}</div>
-  <div class="search">${ic('search', 20)}<input type="text" id="q" placeholder="Naam, gaon ya mobile se khojein" value="${esc(Q)}"></div>
+  <div class="search">${ic('search', 20)}<input type="text" id="q" placeholder="Search by name, village or mobile" value="${esc(Q)}"></div>
   <div id="list"></div>
   <div class="stick"><button class="btn pri grow" data-new="${CUR}">${ic('plus', 18)} New ${esc(ent(CUR).one)}</button></div>`;
 }
@@ -402,32 +405,32 @@ function renderList() {
     <span class="av" style="background:hsl(${h} 60% 93%);color:hsl(${h} 55% 28%)">${esc(initials(titleOf(CUR, r)))}</span>
     <span class="grow"><b>${esc(titleOf(CUR, r))}</b><small>${esc(subOf(CUR, r)) || '&nbsp;'}</small>${by(r) ? `<small class="by">${ic('edit', 12)} ${esc(by(r))}</small>` : ''}</span>
     ${missing(e, r).length ? '<span class="badge">Adhoora</span>' : ''}</button>`).join('')
-    || `<div class="empty"><b>${Q ? 'Kuch nahi mila' : 'Abhi koi entry nahi'}</b>${Q ? 'Doosra naam likhkar dekhein.' : 'Neeche button se jodein, ya beech wale mic se bolkar bharein.'}</div>`;
+    || `<div class="empty"><b>${Q ? 'Nothing found' : 'No entries yet'}</b>${Q ? 'Try another name.' : 'Add one with the button below, or tap the mic in the middle and speak.'}</div>`;
 }
 
 function vGuide() {
-  return `<h2 style="margin-top:4px">Kisse poochein aur kya bolein</h2>` + S.schema.map(e => {
+  return `<h2 style="margin-top:4px">Who to ask and what to say</h2>` + S.schema.map(e => {
     const g = S.guide.find(x => x.Section === e.key) || {};
     return `<details class="box" ${e.key === 'People' ? 'open' : ''}><summary>${esc(e.label)}</summary>
-      <p><b>Kisse lena hai:</b> ${esc(g.KisseLena) || 'Abhi nahi bhara'}</p><p><b>Script:</b> ${esc(g.Script) || 'Abhi nahi bhara'}</p>
+      <p><b>Who to ask:</b> ${esc(g.KisseLena) || 'Not filled yet'}</p><p><b>Script:</b> ${esc(g.Script) || 'Not filled yet'}</p>
       <p style="display:flex;align-items:center;gap:10px"><button class="btn" data-gedit="${e.key}">${ic('edit', 18)} Edit</button><span class="sub">${g.UpdatedBy ? 'Last edit: ' + esc(g.UpdatedBy) + ' · ' + esc(dShort(g.UpdatedAt)) : ''}</span></p></details>`;
-  }).join('') + `<p class="sub" style="padding:4px 2px">Edit karne par Sheet ke "Guide" tab me bhi badal jata hai.<br>App version: ${VER}</p>`;
+  }).join('') + `<p class="sub" style="padding:4px 2px">Edits also update the "Guide" tab in the Sheet.<br>App version: ${VER}</p>`;
 }
 function openGuide(key) {
   const e = ent(key), g = S.guide.find(x => x.Section === key) || {};
   FORM = { guide: key };
   $('#modal').innerHTML = `<div class="panel">
-    <div class="mhead"><div class="grow"><div class="mtitle">Guide: ${esc(e.label)}</div><div class="msub">Kisse poochein aur kya bolein</div></div><button class="icon-btn" data-act="close" aria-label="Close">${ic('x')}</button></div>
-    <div class="mbody"><div class="f"><label>Kisse lena hai</label><div class="inp"><textarea id="gK" rows="4">${esc(g.KisseLena)}</textarea></div></div>
-      <div class="f"><label>Script (kya bolna / poochhna hai)</label><div class="inp"><textarea id="gS" rows="8">${esc(g.Script)}</textarea></div></div></div>
+    <div class="mhead"><div class="grow"><div class="mtitle">Guide: ${esc(e.label)}</div><div class="msub">Who to ask and what to say</div></div><button class="icon-btn" data-act="close" aria-label="Close">${ic('x')}</button></div>
+    <div class="mbody"><div class="f"><label>Who to ask</label><div class="inp"><textarea id="gK" rows="4">${esc(g.KisseLena)}</textarea></div></div>
+      <div class="f"><label>Script (what to say or ask)</label><div class="inp"><textarea id="gS" rows="8">${esc(g.Script)}</textarea></div></div></div>
     <div class="mfoot"><button class="btn pri grow" data-act="gsave">Save</button></div></div>`;
   $('#modal').hidden = false; FORM.snap = snap();
 }
 async function saveGuide() {
   try {
-    busy('Save ho raha hai…');
+    busy('Saving…');
     S.guide = await api('saveGuide', { section: FORM.guide, KisseLena: $('#gK').value, Script: $('#gS').value });
-    store.set('sfd_cache', JSON.stringify(S)); closeForm(); render(); toast('Guide save ho gaya');
+    store.set('sfd_cache', JSON.stringify(S)); closeForm(); render(); toast('Guide saved');
   } catch (err) { toast(err.message, 1) } finally { idle() }
 }
 
@@ -435,23 +438,23 @@ async function saveGuide() {
 function fieldHTML(f, v) {
   const lab = `<label>${esc(f.l)}${f.req ? '<i class="req">zaroori</i>' : ''}</label>`;
   if (f.t === 'select' || f.t === 'yn' || f.t === 'multi') {
-    const on = String(v).split(', ').filter(Boolean), opts = f.o || ['Haan', 'Nahi'];
+    const on = String(v).split(', ').filter(Boolean), opts = f.o || ['Yes', 'No'];
     return `<div class="f">${lab}<div class="chips" data-k="${f.k}" ${f.t === 'multi' ? 'data-multi="1"' : ''}>${opts.map(o => `<button type="button" class="chip${on.includes(o) ? ' on' : ''}" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`;
   }
   if (f.t === 'ref') return `<div class="f">${lab}<div class="combo" data-k="${f.k}" data-ref="${f.ref}" data-val="${esc(v)}">${comboInner(f.ref, v)}</div></div>`;
-  const mic = SR && f.t !== 'month' ? `<button type="button" class="fmic" data-mic="${f.k}" aria-label="Bolkar bharein">${ic('mic', 19)}</button>` : '';
+  const mic = SR && f.t !== 'month' ? `<button type="button" class="fmic" data-mic="${f.k}" aria-label="Fill by voice">${ic('mic', 19)}</button>` : '';
   if (f.t === 'textarea') return `<div class="f">${lab}<div class="inp"><textarea data-k="${f.k}" rows="2">${esc(v)}</textarea>${mic}</div></div>`;
   const num = f.t === 'number' || f.t === 'tel';
   return `<div class="f">${lab}<div class="inp"><input data-k="${f.k}" type="${f.t === 'month' ? 'month' : f.t === 'tel' ? 'tel' : 'text'}" ${num ? 'inputmode="numeric"' : ''} ${f.t === 'tel' ? 'maxlength="10"' : ''} value="${esc(v)}" autocomplete="off">${mic}</div></div>`;
 }
 function comboInner(ref, v) {
   return v ? `<div class="pill"><span>${esc(refLabel(ref, v) || v)}</span><button type="button" data-cclear="1" aria-label="Hatayein">${ic('x', 16)}</button></div>`
-    : `<input type="text" class="cinp" placeholder="Naam likhein ya chunein" autocomplete="off"><div class="dd" hidden></div>`;
+    : `<input type="text" class="cinp" placeholder="Type or pick a name" autocomplete="off"><div class="dd" hidden></div>`;
 }
 function comboOpts(combo, q) {
   const ref = combo.dataset.ref, nq = norm(q);
   let list = rows(ref).map(r => ({ id: r.ID, label: titleOf(ref, r), sub: subOf(ref, r) }));
-  if (FORM.mode === 'pv') PV.items.filter(x => x.entity === ref && x !== FORM.item).forEach(x => list.push({ id: 'tmp:' + x.tmp, label: titleOf(ref, x.data) + ' (naya)', sub: '' }));
+  if (FORM.mode === 'pv') PV.items.filter(x => x.entity === ref && x !== FORM.item).forEach(x => list.push({ id: 'tmp:' + x.tmp, label: titleOf(ref, x.data) + ' (new)', sub: '' }));
   if (FORM.row && FORM.row.ID && FORM.e.key === ref) list = list.filter(o => o.id !== FORM.row.ID);
   const out = list.filter(o => !nq || norm(o.label).includes(nq)).slice(0, 8);
   if (q.trim() && !list.some(o => norm(o.label) === nq)) out.push({ id: 'new:' + q.trim(), label: '+ Add "' + q.trim() + '"', sub: '', neu: 1 });
@@ -471,9 +474,9 @@ function openForm(key, row, opt) {
   FORM = { e, row: row || null, mode: opt.mode || 'db', item: opt.item || null };
   const g = S.guide.find(x => x.Section === key);
   $('#modal').innerHTML = `<div class="panel">
-    <div class="mhead"><div class="grow"><div class="mtitle">${row ? esc(titleOf(key, d)) : 'Naya ' + esc(e.one)}</div><div class="msub">${esc(e.label)}${row && row.ID ? ' · ' + esc(row.ID) + (by(row) ? ' · by ' + esc(by(row)) : '') : ''}</div></div><button class="icon-btn" data-act="close" aria-label="Band karein">${ic('x')}</button></div>
+    <div class="mhead"><div class="grow"><div class="mtitle">${row ? esc(titleOf(key, d)) : 'New ' + esc(e.one)}</div><div class="msub">${esc(e.label)}${row && row.ID ? ' · ' + esc(row.ID) + (by(row) ? ' · by ' + esc(by(row)) : '') : ''}</div></div><button class="icon-btn" data-act="close" aria-label="Close">${ic('x')}</button></div>
     <div class="mbody">
-      ${g && (g.KisseLena || g.Script) ? `<details class="guide"><summary>Kisse poochein aur kya bolein</summary>${g.KisseLena ? `<p><b>Kisse:</b> ${esc(g.KisseLena)}</p>` : ''}${g.Script ? `<p><b>Script:</b> ${esc(g.Script)}</p>` : ''}</details>` : ''}
+      ${g && (g.KisseLena || g.Script) ? `<details class="guide"><summary>Who to ask and what to say</summary>${g.KisseLena ? `<p><b>Who:</b> ${esc(g.KisseLena)}</p>` : ''}${g.Script ? `<p><b>Script:</b> ${esc(g.Script)}</p>` : ''}</details>` : ''}
       ${e.fields.map(f => fieldHTML(f, d[f.k] || '')).join('')}
     </div>
     <div class="mfoot">${row && row.ID && FORM.mode === 'db' ? `<button class="btn ghost danger" data-act="del" aria-label="Delete">${ic('trash', 20)}</button>` : ''}<button class="btn pri grow" data-act="save">${FORM.mode === 'pv' ? 'Done' : 'Save'}</button></div></div>`;
@@ -508,25 +511,25 @@ function mergeOnto(e, d, ex) { const o = { ID: ex.ID }; e.fields.forEach(f => { 
 
 async function saveForm() {
   const e = FORM.e; let { d, extras } = collect();
-  if (!Object.values(d).some(Boolean)) return toast('Kam se kam ek field bharein', 1);
+  if (!Object.values(d).some(Boolean)) return toast('Fill at least one field', 1);
   if (FORM.mode === 'pv') {
     const it = FORM.item; it.data = {}; Object.keys(d).forEach(k => { if (d[k]) it.data[k] = d[k] });
     extras.forEach(x => PV.items.push({ entity: x.entity, tmp: x.tmp, existingId: '', data: x.data, evidence: '', flag: '', include: true, auto: true }));
     closeForm(); return render();
   }
   if (FORM.row) d.ID = FORM.row.ID;
-  else { const dup = findDup(e.key, d); if (dup) { const ch = await ask('Ye pehle se hai', `"${titleOf(e.key, dup)}" database me maujood hai.`, ['Update existing', 'Create new']); if (ch === null) return; if (ch === 0) d = mergeOnto(e, d, dup) } }
-  try { busy('Save ho raha hai…'); S.data = await api('saveBatch', { items: extras.concat([{ entity: e.key, data: d }]) }); closeForm(); render(); toast('Save ho gaya') }
+  else { const dup = findDup(e.key, d); if (dup) { const ch = await ask('This already exists', `"${titleOf(e.key, dup)}" is already in the database.`, ['Update existing', 'Create new']); if (ch === null) return; if (ch === 0) d = mergeOnto(e, d, dup) } }
+  try { busy('Saving…'); S.data = await api('saveBatch', { items: extras.concat([{ entity: e.key, data: d }]) }); closeForm(); render(); toast('Saved') }
   catch (err) { toast(err.message, 1) } finally { idle() }
 }
 async function delForm() {
-  const ch = await ask('Delete karein?', `"${titleOf(FORM.e.key, FORM.row)}" hamesha ke liye hat jayega.`, ['Yes, delete']); if (ch !== 0) return;
-  try { busy('Delete ho raha hai…'); S.data = await api('remove', { entity: FORM.e.key, id: FORM.row.ID }); closeForm(); render(); toast('Delete ho gaya') }
+  const ch = await ask('Delete?', `"${titleOf(FORM.e.key, FORM.row)}" will be removed permanently.`, ['Yes, delete']); if (ch !== 0) return;
+  try { busy('Deleting…'); S.data = await api('remove', { entity: FORM.e.key, id: FORM.row.ID }); closeForm(); render(); toast('Deleted') }
   catch (err) { toast(err.message, 1) } finally { idle() }
 }
 function pickEntity() {
   FORM = null;
-  $('#modal').innerHTML = `<div class="panel"><div class="mhead"><div class="grow"><div class="mtitle">Kya jodna hai?</div><div class="msub">Type karke bharein</div></div><button class="icon-btn" data-act="close" aria-label="Band karein">${ic('x')}</button></div>
+  $('#modal').innerHTML = `<div class="panel"><div class="mhead"><div class="grow"><div class="mtitle">What do you want to add?</div><div class="msub">Fill in by typing</div></div><button class="icon-btn" data-act="close" aria-label="Close">${ic('x')}</button></div>
     <div class="mbody"><div class="pick">${S.schema.map(e => { const h = hue(e.key); return `<button class="item" data-new="${e.key}"><span class="av" style="background:hsl(${h} 60% 93%);color:hsl(${h} 55% 28%)">${ic('plus', 20)}</span><span class="grow"><b>${esc(e.label)}</b><small>${rows(e.key).length} entries</small></span></button>` }).join('')}</div></div></div>`;
   $('#modal').hidden = false;
 }
@@ -542,49 +545,49 @@ function fieldMic(btn) {
 
 /* ---------------- voice ---------------- */
 function vVoice() {
-  if (PV.state === 'rec') return `<div class="card vhero"><button class="bigmic rec" data-act="recstop" aria-label="Rokein">${ic('stop', 46)}</button><div class="timer" id="rtime">0:00</div><p>Record ho raha hai. Khatam hone par button dabayein.</p><br><button class="btn ghost" data-act="reccancel">Discard</button></div>`;
-  if (PV.state === 'proc') return `<div class="card vhero"><div class="spin" style="margin:10px auto"></div><h3 id="pmsg">${esc(PV.msg)}</h3><p>Is screen ko band na karein.</p><div class="prog"><i id="pbar" style="width:${PV.pct}%"></i></div></div>`;
+  if (PV.state === 'rec') return `<div class="card vhero"><button class="bigmic rec" data-act="recstop" aria-label="Stop">${ic('stop', 46)}</button><div class="timer" id="rtime">0:00</div><p>Recording. Tap the button when you finish.</p><br><button class="btn ghost" data-act="reccancel">Discard</button></div>`;
+  if (PV.state === 'proc') return `<div class="card vhero"><div class="spin" style="margin:10px auto"></div><h3 id="pmsg">${esc(PV.msg)}</h3><p>Please keep this screen open.</p><div class="prog"><i id="pbar" style="width:${PV.pct}%"></i></div></div>`;
   if (PV.state === 'pv') return vPreview();
   return `<div class="card vhero">
-      <button class="bigmic" data-act="recstart" aria-label="Bolna shuru karein">${ic('mic', 52)}</button>
-      <h3>Bolkar bharein</h3><p>Mulaqat ke baad apni baat bolein, entries apne aap ban jayengi.</p>
+      <button class="bigmic" data-act="recstart" aria-label="Start speaking">${ic('mic', 52)}</button>
+      <h3>Fill by voice</h3><p>Speak after each meeting and the entries are created for you.</p>
       <div class="or"><button class="btn" data-act="upload">${ic('upload', 19)} Upload recording</button><button class="btn" data-act="paste">${ic('text', 19)} Paste text</button></div>
     </div>
-    <div id="pastebox" ${PV.transcript ? '' : 'hidden'} class="card" style="margin-top:12px"><div class="f"><label>Transcript ya notes yahan paste karein</label><textarea id="ptext" rows="5">${esc(PV.transcript || window.DEMO_SAMPLE || '')}</textarea></div><button class="btn pri block" data-act="pastego">Extract data</button></div>
-    <h2>Sahi data ke liye</h2>
+    <div id="pastebox" ${PV.transcript ? '' : 'hidden'} class="card" style="margin-top:12px"><div class="f"><label>Paste a transcript or notes here</label><textarea id="ptext" rows="5">${esc(PV.transcript || window.DEMO_SAMPLE || '')}</textarea></div><button class="btn pri block" data-act="pastego">Extract data</button></div>
+    <h2>For accurate data</h2>
     <div class="card"><ul class="tips">
-      <li>Har mulaqat ke turant baad 2 se 5 minute ka note bolein.</li>
-      <li>Gaon ka naam aur vyakti ka poora naam saaf bolein.</li>
-      <li>Mobile number ek-ek ank karke bolein.</li>
-      <li>Save se pehle har entry ek baar dekh lein; peeli aur laal cheezein theek karein.</li>
+      <li>Record a 2 to 5 minute note right after each meeting.</li>
+      <li>Say the village name and the person’s full name clearly.</li>
+      <li>Say mobile numbers one digit at a time.</li>
+      <li>Check every entry before saving and fix anything marked yellow or red.</li>
     </ul></div>`;
 }
 function vPreview() {
   const n = PV.items.filter(x => x.include).length;
-  return `<details class="box"><summary>Jo suna gaya (transcript)</summary><p>${esc(PV.transcript)}</p></details>
+  return `<details class="box"><summary>What was heard (transcript)</summary><p>${esc(PV.transcript)}</p></details>
   ${PV.items.length ? PV.items.map((it, i) => {
     const e = ent(it.entity), ex = it.existingId && byId(it.entity, it.existingId), full = Object.assign({}, ex || {}, it.data), miss = missing(e, full);
     const badTel = e.fields.some(f => f.t === 'tel' && it.data[f.k] && !mobileOk(it.data[f.k]));
     const kv = e.fields.filter(f => it.data[f.k] && f.k !== 'Name').map(f => `<div><span>${esc(f.l.split(' (')[0])}:</span> ${esc(f.t === 'ref' ? refLabel(f.ref, it.data[f.k]) : it.data[f.k])}</div>`).join('');
     return `<div class="pcard ${it.include ? '' : 'off'}">
-      <button class="tick ${it.include ? 'on' : ''}" data-ptoggle="${i}" aria-label="Shamil karein">${ic('check', 18)}</button>
+      <button class="tick ${it.include ? 'on' : ''}" data-ptoggle="${i}" aria-label="Include">${ic('check', 18)}</button>
       <div class="grow"><span class="etag" style="color:hsl(${hue(it.entity)} 55% 32%)">${esc(e.label)}</span><b class="t">${esc(titleOf(it.entity, full))}</b><div class="kv">${kv}</div>
         ${it.evidence ? `<div class="ev">"${esc(it.evidence)}"</div>` : ''}
         <div class="flags">
-          ${ex ? `<span class="flag ok">Pehle se hai, update hoga<button data-pnew="${i}">Create new</button></span>` : ''}
-          ${badTel ? '<span class="flag bad">Mobile number galat lag raha hai</span>' : ''}
-          ${miss.length ? `<span class="flag">Baaki: ${esc(miss.map(f => f.l.split(' (')[0]).join(', '))}</span>` : ''}
+          ${ex ? `<span class="flag ok">Already exists, will be updated<button data-pnew="${i}">Create new</button></span>` : ''}
+          ${badTel ? '<span class="flag bad">The mobile number looks wrong</span>' : ''}
+          ${miss.length ? `<span class="flag">Missing: ${esc(miss.map(f => f.l.split(' (')[0]).join(', '))}</span>` : ''}
           ${it.flag ? `<span class="flag">AI: ${esc(it.flag)}</span>` : ''}
-          ${it.auto ? '<span class="flag">Sirf naam se bana, details bharein</span>' : ''}
+          ${it.auto ? '<span class="flag">Created from the name only; add details</span>' : ''}
         </div></div>
-      <button class="icon-btn" data-pedit="${i}" aria-label="Theek karein">${ic('edit', 20)}</button></div>`;
-  }).join('') : '<div class="card empty"><b>Koi entry nahi nikli</b>Is recording me database ke kaam ki jaankari nahi mili.</div>'}
+      <button class="icon-btn" data-pedit="${i}" aria-label="Fix">${ic('edit', 20)}</button></div>`;
+  }).join('') : '<div class="card empty"><b>No entries found</b>The recording had nothing for the database.</div>'}
   <div class="stick"><button class="btn" data-act="pvcancel">Discard</button><button class="btn pri grow" data-act="pvsave" ${n ? '' : 'disabled style="opacity:.5"'}>Save ${n} entries</button></div>`;
 }
 function step(msg, pct) { PV.state = 'proc'; PV.msg = msg; PV.pct = pct; const m = $('#pmsg'); if (m && TAB === 'voice') { m.textContent = msg; $('#pbar').style.width = pct + '%' } else if (TAB === 'voice') render() }
 
 async function startRec() {
-  if (!S.ai.stt || !S.ai.llm) return toast('Backend me AI ki key set nahi hai', 1);
+  if (!S.ai.stt || !S.ai.llm) return toast('The AI key is not set on the backend', 1);
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mr = new MediaRecorder(stream), parts = [];
@@ -597,32 +600,32 @@ async function startRec() {
     };
     REC = { mr, t0: Date.now(), cancel: false, timer: setInterval(() => { const el = $('#rtime'); if (!el) return; const s = Math.floor((Date.now() - REC.t0) / 1000); el.textContent = Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2) }, 500) };
     mr.start(1000); PV.state = 'rec'; render();
-  } catch (e) { toast('Demo: mic yahan band hai. Paste text try karein', 1) }
+  } catch (e) { toast('Demo: the microphone is off here. Try pasting text', 1) }
 }
 async function runAudio(blob) {
   try {
-    if (blob.size > 60e6) throw new Error('Recording bahut badi hai. 20 minute se chhoti file chadhayein.');
-    step('Audio taiyar ho rahi hai…', 4);
+    if (blob.size > 60e6) throw new Error('The recording is too long. Upload a file under 20 minutes.');
+    step('Preparing audio…', 4);
     const chunks = splitPcm(await toPcm16k(blob)), session = 'a' + Date.now(); let text = '';
     for (let i = 0; i < chunks.length; i++) {
-      step(`Sun raha hoon… ${i + 1}/${chunks.length}`, 8 + 72 * i / chunks.length);
+      step(`Listening… ${i + 1}/${chunks.length}`, 8 + 72 * i / chunks.length);
       const req = { audio: b64(wav(chunks[i])), session, index: i }, r = await api('transcribe', req).catch(() => api('transcribe', req)); text += (r.text || '') + ' '; // ek baar retry, taaki ek tukda poori recording na gira de
     }
     await runExtract(text.trim());
-  } catch (e) { PV.state = 'idle'; if (TAB === 'voice') render(); toast(e.message || 'Audio process nahi ho payi', 1) }
+  } catch (e) { PV.state = 'idle'; if (TAB === 'voice') render(); toast(e.message || 'Audio could not be processed', 1) }
 }
 async function runExtract(text) {
-  if (!text) throw new Error('Recording me kuch sunai nahi diya');
-  step('Data nikal raha hoon…', 86);
+  if (!text) throw new Error('Nothing could be heard in the recording');
+  step('Extracting data…', 86);
   PV.transcript = text;   // extract fail ho to bhi transcript paste box me bacha rahe
   const r = await api('extract', { transcript: text });
   PV.items = prepItems(r.items || []); PV.state = 'pv';
-  if (TAB === 'voice') render(); else toast('Recording taiyar hai, "Speak" tab me dekhein');
+  if (TAB === 'voice') render(); else toast('The recording is ready; see the "Speak" tab');
 }
 async function toPcm16k(blob) {
   const AC = window.AudioContext || window.webkitAudioContext, OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const ac = new AC(); let buf;
-  try { buf = await ac.decodeAudioData(await blob.arrayBuffer()) } catch (e) { throw new Error('Ye audio file khul nahi payi. mp3, m4a ya wav try karein.') } finally { ac.close() }
+  try { buf = await ac.decodeAudioData(await blob.arrayBuffer()) } catch (e) { throw new Error('This audio file could not be opened. Try mp3, m4a or wav.') } finally { ac.close() }
   const off = new OAC(1, Math.max(1, Math.ceil(buf.duration * 16000)), 16000), s = off.createBufferSource();
   s.buffer = buf; s.connect(off.destination); s.start(0);
   return (await off.startRendering()).getChannelData(0);
@@ -655,7 +658,7 @@ function prepItems(raw) {
     e.fields.forEach(f => {
       let v = it.data[f.k]; if (v == null || v === '') return;
       if (f.t === 'select' || f.t === 'yn' || f.t === 'multi') {
-        const opts = f.o || ['Haan', 'Nahi'], got = (Array.isArray(v) ? v : String(v).split(',')).map(x => opts.find(o => norm(o) === norm(x))).filter(Boolean);
+        const opts = f.o || ['Yes', 'No'], got = (Array.isArray(v) ? v : String(v).split(',')).map(x => opts.find(o => norm(o) === norm(x))).filter(Boolean);
         if (got.length) d[f.k] = (f.t === 'multi' ? [...new Set(got)] : [got[0]]).join(', ');
         return;
       }
@@ -690,7 +693,7 @@ function prepItems(raw) {
 async function savePreview() {
   const inc = PV.items.filter(x => x.include); if (!inc.length) return;
   const items = inc.map(it => { const e = ent(it.entity), ex = it.existingId && byId(it.entity, it.existingId); return { entity: it.entity, tmp: it.tmp, source: 'Voice', data: ex ? mergeOnto(e, it.data, ex) : Object.assign({}, it.data) } });
-  try { busy('Save ho raha hai…'); S.data = await api('saveBatch', { items, transcript: PV.transcript }); PV = { state: 'idle', items: [], transcript: '', msg: '', pct: 0 }; TAB = 'dash'; render(); toast(items.length + ' entries save ho gayi') }
+  try { busy('Saving…'); S.data = await api('saveBatch', { items, transcript: PV.transcript }); PV = { state: 'idle', items: [], transcript: '', msg: '', pct: 0 }; TAB = 'dash'; render(); toast(items.length + ' entries saved') }
   catch (err) { toast(err.message, 1) } finally { idle() }
 }
 
@@ -723,11 +726,11 @@ document.addEventListener('click', async ev => {
     case 'recstart': return startRec();
     case 'recstop': return REC && REC.mr.stop();
     case 'reccancel': if (REC) { REC.cancel = true; REC.mr.stop() } return;
-    case 'upload': if (!S.ai.stt || !S.ai.llm) return toast('Backend me AI ki key set nahi hai', 1); return $('#afile').click();
+    case 'upload': if (!S.ai.stt || !S.ai.llm) return toast('The AI key is not set on the backend', 1); return $('#afile').click();
     case 'paste': $('#pastebox').hidden = false; return $('#ptext').focus();
-    case 'pastego': { const tx = $('#ptext').value.trim(); if (!tx) return toast('Pehle text paste karein', 1); if (!S.ai.llm) return toast('Backend me AI ki key set nahi hai', 1); try { await runExtract(tx) } catch (e) { PV.state = 'idle'; render(); toast(e.message, 1) } return }
+    case 'pastego': { const tx = $('#ptext').value.trim(); if (!tx) return toast('Paste some text first', 1); if (!S.ai.llm) return toast('The AI key is not set on the backend', 1); try { await runExtract(tx) } catch (e) { PV.state = 'idle'; render(); toast(e.message, 1) } return }
     case 'pvsave': return savePreview();
-    case 'pvcancel': if (await ask('Radd karein?', 'Is recording se nikli entries save nahi hongi.', ['Yes, discard']) === 0) { PV = { state: 'idle', items: [], transcript: '', msg: '', pct: 0 }; render() } return;
+    case 'pvcancel': if (await ask('Discard?', 'Entries from this recording will not be saved.', ['Yes, discard']) === 0) { PV = { state: 'idle', items: [], transcript: '', msg: '', pct: 0 }; render() } return;
   }
 });
 document.addEventListener('input', ev => {
@@ -744,7 +747,7 @@ document.addEventListener('touchend', ev => {
   const k = S.schema.map(e => e.key), n = k[k.indexOf(CUR) + (dx < 0 ? 1 : -1)];
   if (n) { CUR = n; Q = ''; render() }
 }, { passive: true });
-/* Phone ka Back: pehle popup/form band, phir Dashboard, phir "App band karein?" poochho */
+/* Phone ka Back: pehle popup/form band, phir Dashboard, phir "Close the app?" poochho */
 /* Android Chrome bina tap ke bani history entry ko Back par skip kar deta hai (app seedha band). Isliye guard pehle tap ke baad lagta hai. */
 history.replaceState({ b: 0 }, '');
 const guard = () => history.pushState({ b: 1 }, '');
@@ -754,28 +757,28 @@ addEventListener('popstate', async () => {
   if (!$('#ask').hidden) { guard(); return $('#ask [data-i="-1"]').click() }
   if (!$('#modal').hidden) {
     guard();
-    if (FORM && FORM.snap !== undefined && snap() !== FORM.snap && await ask('Bina save kiye band karein?', 'Is form me bhari jaankari save nahi hogi.', ['Yes, close']) !== 0) return;
+    if (FORM && FORM.snap !== undefined && snap() !== FORM.snap && await ask('Close without saving?', 'What you entered in this form will not be saved.', ['Yes, close']) !== 0) return;
     return closeForm();
   }
-  if (REC || PV.state === 'proc') { guard(); return toast('Pehle recording / processing khatam hone dein', 1) }
+  if (REC || PV.state === 'proc') { guard(); return toast('Let the recording or processing finish first', 1) }
   if (TAB !== 'dash') { guard(); TAB = 'dash'; window.scrollTo(0, 0); return render() }
-  if (await ask('App band karein?', 'Aapka saara data save hai.', ['Yes, exit']) !== 0) return guard();
-  ARMED = false; history.back(); setTimeout(() => toast('Band karne ke liye Back ek baar aur dabayein'), 600);   // app seedha khula ho to browser khud band karega
+  if (await ask('Close the app?', 'All your data is saved.', ['Yes, exit']) !== 0) return guard();
+  ARMED = false; history.back(); setTimeout(() => toast('Press Back once more to close'), 600);   // app seedha khula ho to browser khud band karega
 });
 $('#afile').addEventListener('change', ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) runAudio(f) });
 
 /* ---------------- boot ---------------- */
 async function pickUser() {
-  const i = await ask('Entry kaun kar raha hai?', `Har entry ke saath ye naam Sheet me save hoga. App band karne par naam wapas ${HOME} ho jayega.`, USERS);
-  if (i !== null) { AUTH.user = USERS[i]; if (S) render(); if (AUTH.user !== HOME) toast('Ab entries ' + AUTH.user + ' ke naam se hongi') }
+  const i = await ask('Who is making entries?', `This name is saved with every entry in the Sheet. It resets to ${HOME} when the app closes.`, USERS);
+  if (i !== null) { AUTH.user = USERS[i]; if (S) render(); if (AUTH.user !== HOME) toast('Entries will now be saved as ' + AUTH.user) }
 }
 /* Pehle phone me rakha pichhla data turant dikhao, server (Apps Script, 3-8 sec) ka naya data peeche se aane do */
 async function load() {
   let cached = null;
   if (!S) { try { cached = JSON.parse(store.get('sfd_cache')) } catch (e) { } }
-  if (cached && cached.schema) { S = cached; show(true) } else busy('Load ho raha hai…');
+  if (cached && cached.schema) { S = cached; show(true) } else busy('Loading…');
   try { S = await api('init'); store.set('sfd_cache', JSON.stringify(S)); show(!cached) }
-  catch (e) { if (S) toast('Server se naya data nahi aaya, pichhla data dikh raha hai', 1); else { $('#app').hidden = true; $('#login').hidden = false; $('#lmsg').textContent = e.message } }
+  catch (e) { if (S) toast('No new data from the server; showing the last saved data', 1); else { $('#app').hidden = true; $('#login').hidden = false; $('#lmsg').textContent = e.message } }
   finally { idle() }
 }
 function show(force) {
@@ -784,7 +787,7 @@ function show(force) {
   if (force || !busyUser) render();   // form bhar rahe ho to beech me screen nahi badlegi
 }
 $('#bReload').innerHTML = ic('refresh');
-if (!/^https?:/.test(API_URL)) { $('#login').hidden = false; $('#lmsg').textContent = 'Setup baaki hai: index.html me API_URL ki jagah Apps Script web app ka URL paste karein.' }
+if (!/^https?:/.test(API_URL)) { $('#login').hidden = false; $('#lmsg').textContent = 'Setup needed: paste the Apps Script web app URL as API_URL.' }
 else load();
 </script>
 <div style="position:fixed;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top,0px));z-index:9999;background:#111827;color:#fff;font:600 12px/1 system-ui,sans-serif;padding:7px 12px;border-radius:999px;opacity:.88;pointer-events:none;white-space:nowrap">Demo · sample data · AI simulated</div>
