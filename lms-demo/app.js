@@ -639,8 +639,8 @@ function videoStop() {
 // Only events go to the server: "face not visible", "more than one face", "camera turned off".
 // ponytail: checked in the browser only, like the other test guards — a determined learner with dev tools can skip it.
 
-const MP = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
-const FACE_MODEL = 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite';
+const MP = new URL('demo/mediapipe', location.href).href;
+const FACE_MODEL = new URL('demo/mediapipe/blaze_face_short_range.tflite', location.href).href;
 const ABSENT_SEC = { video: 3, test: 5 }; // grace before it counts: a glance away or dim light shouldn't trip it
 const MIN_FACE = 0.12; // a face narrower than 12% of the picture is someone in the background, not the learner at the screen
 const MULTI_SEC = 3;

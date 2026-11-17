@@ -43,6 +43,8 @@
     meta = await loadMeta();
     status('Loading sample trainings…');
     await window.DEMO_SEED({ db, as, rpcAs, ID });
+    // ?cam: the sample learner has no camera exemption, so the real on-device face check runs on the visitor's webcam
+    if (new URLSearchParams(location.search).has('cam')) await db.query(`update profiles set camera_exempt = false where id = '00000000-0000-4000-8000-000000000001'`);
     const el = document.getElementById('demo-boot'); if (el) el.remove();
   })();
   ready.catch(e => { status('The demo could not start: ' + e.message); console.error(e); });
